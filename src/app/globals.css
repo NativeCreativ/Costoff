@@ -1,0 +1,358 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700;800&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Sidebar (Dark Navy + Amber Gold) */
+  --sidebar-bg-gradient: linear-gradient(180deg, #0b1727 0%, #070e19 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-title: #f59e0b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+
+  /* Main canvas */
+  --bg-main: #f8fafc;
+  --card-border: #e2e8f0;
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+
+  /* Status & Accent Colors */
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+
+  /* shadcn/ui theme tokens — mapped to existing palette, scoped to shadcn components only */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eff6ff;
+  --accent-foreground: #2563eb;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
+  --radius: 0.375rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================= MAIN CONTENT ================= */
+.search-box {
+  position: relative;
+  width: 340px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 9px 14px 9px 38px;
+  background-color: #f8fafc;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 0.84rem;
+  transition: all 0.2s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  background-color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 2px;
+  border-radius: 9999px;
+}
+
+.search-clear:hover {
+  color: var(--text-main);
+  background-color: #f1f5f9;
+}
+
+/* List toolbars: search on its own line, filters and actions wrap inside the card. */
+.list-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--card-border);
+  background: #fff;
+  box-shadow: var(--card-shadow);
+  padding: 1rem 1.25rem;
+}
+
+.list-toolbar .search-box {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.list-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background: #f8fafc;
+  border-color: #93c5fd;
+}
+
+.toolbar-btn:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.toolbar-btn-primary {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.toolbar-btn-primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.toolbar-btn-flag.is-on {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.toolbar-btn-flag.is-on:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+/* Native selects that stay native (page size, a one-off stage move). The chevron is
+   drawn inside the control so it reads as part of the button, not an OS arrow on the edge. */
+.button-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  color: #334155;
+  font-size: 0.83rem;
+  font-weight: 600;
+  height: 2.5rem;
+  padding: 0 2.2rem 0 0.9rem;
+  cursor: pointer;
+}
+
+.button-select:hover {
+  border-color: #93c5fd;
+  background-color: #f8fafc;
+}
+
+.button-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.button-select-sm {
+  height: 2rem;
+  font-size: 0.8rem;
+  padding-right: 1.9rem;
+}
+
+/* Wide tables scroll inside the card. The page column itself stays overflow-hidden. */
+.table-scroll {
+  container-type: inline-size;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.table-scroll > table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.table-scroll th {
+  white-space: nowrap;
+}
+
+.table-empty {
+  position: sticky;
+  left: 0;
+  width: 100cqi;
+  max-width: 100cqi;
+  box-sizing: border-box;
+  white-space: normal;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: #64748b;
+}
+
+/* Tables & Cards Section */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.data-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  text-align: left;
+  padding: 12px 18px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.data-table td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--card-border);
+  color: #334155;
+  transition: background-color 0.15s ease;
+}
+
+.data-table tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* Org Overview dashboard tables: same look as .data-table but
+   with the dashboard's 22px horizontal cell padding (the shared
+   .data-table keeps its original 18px for every other page). */
+.org-overview-table th {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.org-overview-table td {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+/* Scrollable but no visible scrollbar (e.g. the Pipeline tab's Kanban board) */
+.scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
+}
+
+/*
+ * Horizontal scroll area that KEEPS a visible scrollbar (the Pipeline tab's Kanban
+ * board). The board is far wider than the viewport — with the scrollbar hidden there
+ * was no affordance telling the user more columns exist to the right. The bar is styled
+ * thin and muted so it reads as a control, not as content.
+ */
+.kanban-scroll {
+  /* Reserve the gutter so a visible bar never overlaps the last column's card. */
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.kanban-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kanban-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

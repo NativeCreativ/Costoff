@@ -1,0 +1,22 @@
+-- Removes the `v_demands_with_aging` database view entirely.
+--
+-- This view was never modeled by Prisma (no `view { ... }` block in schema.prisma
+-- despite the `views` preview feature being enabled) — it only ever existed as raw
+-- `CREATE OR REPLACE VIEW` SQL hand-written into earlier migrations
+-- (0_baseline, 20260922102334_refresh_demands_aging_view, 20260924090000_fix_am_name_join,
+-- 20260924170125_split_demand_spoc_assignment, 20261001185211_compensation_currency_type_and_interview_cleanup).
+-- Because it wasn't tracked by Prisma's migration diff engine, it was invisible to
+-- `prisma migrate dev`/`deploy` on a fresh database unless every one of those raw-SQL
+-- migrations happened to run in order — a landmine for any new environment.
+--
+-- All application code that used to query `v_demands_with_aging` directly now reads
+-- the same joins/computed columns (am_name, spoc_name, compensation_currency_*,
+-- compensation_type_name, recruiter_ids, recruiter_names, days_open, is_red_flag) via
+-- a reusable derived-table SQL fragment (DEMANDS_WITH_AGING_BASE in
+-- src/lib/demands/demandAgingQuery.ts) built directly against the base `demands` table
+-- and its existing foreign keys — so dropping the view here is safe: every runtime
+-- dependency on it was removed first (see src/app/api/demands/route.ts,
+-- src/app/api/demands/[requestId]/lifecycle/route.ts, src/app/api/dashboard/route.ts,
+-- src/lib/auth/demandVisibility.ts).
+
+DROP VIEW IF EXISTS "public"."v_demands_with_aging";

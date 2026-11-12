@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+uploads
+public/uploads
+npm-debug.log*
+*.tsbuildinfo
+.vercel
+.cursor
+terminals

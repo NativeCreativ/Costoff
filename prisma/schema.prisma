@@ -1,0 +1,909 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes", "views"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model candidates {
+  id                                       String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  full_name                                String        @db.VarChar(255)
+  phone                                    String?       @db.VarChar(50)
+  alternate_phone                          String?       @db.VarChar(50)
+  email                                    String?       @db.VarChar(255)
+  qualification                            String?       @db.VarChar(255)
+  available_from                           DateTime?     @db.Date
+  skills                                   String[]
+  /// Rule: the skills-library role category picked in Key Skills. Same column meaning as on a demand.
+  skills_category_id                       String?       @db.Uuid
+  current_company                          String?       @db.VarChar(255)
+  current_location                         String?       @db.VarChar(255)
+  preferred_locations                      String[]
+  current_ctc                              Decimal?      @db.Decimal(10, 2)
+  expected_ctc                             Decimal?      @db.Decimal(10, 2)
+  source                                   String?       @default("naukri") @db.VarChar(100)
+  availability                             String?       @db.VarChar(100)
+  holding_other_offer                      String?       @db.VarChar(100)
+  profile_archived                         Boolean?      @default(false)
+  added_by                                 String?       @db.Uuid
+  created_at                               DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at                               DateTime?     @default(now()) @updatedAt @db.Timestamptz(6)
+  specialization                           String?       @db.VarChar(255)
+  total_experience                         String?       @db.VarChar(100)
+  work_mode                                String?       @db.VarChar(20)
+  linked_url                               String?       @db.VarChar(500)
+  updated_by                               String?       @db.Uuid
+  current_designation                      String?       @db.VarChar(255)
+  /// Offer in hand from another company. With the notice period this drives candidateUrgency.
+  offer_in_hand                            Boolean       @default(false)
+  offer_company                            String?       @db.VarChar(255)
+  offer_ctc                                Decimal?      @db.Decimal(10, 2)
+  offer_doj                                DateTime?     @db.Date
+  candidate_conversations                  candidate_conversations[]
+  demand_call_logs                         demand_call_logs[]
+  profiles_candidates_added_byToprofiles  profiles?     @relation("candidates_added_byToprofiles", fields: [added_by], references: [id], onUpdate: NoAction)
+  profiles_candidates_updated_byToprofiles profiles?     @relation("candidates_updated_byToprofiles", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  skill_categories                         skill_categories? @relation(fields: [skills_category_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  interviews                               interviews[]
+  offers                                   offers[]
+  onboardings                              onboardings[]
+  submissions                              submissions[]
+
+  @@index([skills_category_id])
+}
+
+model interview_rounds {
+  id                             String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                           String                     @db.VarChar(100)
+  sort_order                     Int                        @default(0)
+  is_active                      Boolean                    @default(true)
+  created_at                     DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime?                  @default(now()) @updatedAt @db.Timestamptz(6)
+  company_interview_rounds       company_interview_rounds[]
+  demand_interview_rounds_master demand_interview_rounds[]  @relation("demand_interview_rounds_master")
+}
+
+/** Skills library: picker source for SkillsSelector. Skill NAMES stay text[] on demands/candidates. */
+/// Skill Group template: a named set of skills (the existing category → skills relation).
+/// Distinct from `skill_classifications`, which classifies a skill as technical / behavioural / domain.
+model skill_categories {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @unique @db.VarChar(40)
+  description String?
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  skills      skills[]
+  demands     demands[]
+  candidates  candidates[]
+  demand_type_skill_categories demand_type_skill_categories[]
+}
+
+/// Classification of a skill (Technical, Behavioural, Domain, …). Not a skill-group template.
+model skill_classifications {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String   @unique @db.VarChar(50)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  skills     skills[]
+}
+
+model skills {
+  id                    String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  category_id           String                 @db.Uuid
+  name                  String                 @db.VarChar(40)
+  /// `mandatory` or `optional`. Existing rows default to optional.
+  skill_type            String                 @default("optional") @db.VarChar(20)
+  classification_id     String?                @db.Uuid
+  sort_order            Int                    @default(0)
+  is_active             Boolean                @default(true)
+  created_at            DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  skill_categories      skill_categories       @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  skill_classifications skill_classifications? @relation(fields: [classification_id], references: [id], onDelete: SetNull)
+
+  @@unique([category_id, name])
+  @@index([category_id])
+  @@index([classification_id])
+}
+
+
+model companies {
+  id                                      String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  client_name                             String?                    @db.VarChar(255)
+  name                                    String                     @db.VarChar(255)
+  email                                   String?                    @db.VarChar(255)
+  phone                                   String?                    @db.VarChar(50)
+  website                                 String?                    @db.VarChar(255)
+  address                                 String?
+  city                                    String?                    @db.VarChar(100)
+  state                                   String?                    @db.VarChar(100)
+  country                                 String?                    @db.VarChar(100)
+  status                                  String                     @default("ACTIVE") @db.VarChar(20)
+  /// The company's Account Manager, which replaced the company-level SPOC. Optional and
+  /// clearable; NULL means "no AM", which is where every pre-existing company starts.
+  /// AM-role profiles only — a Delivery Head is never stored here.
+  account_manager_id                      String?                    @db.Uuid
+  /// The Delivery Head (super_admin) who manages this client. Set by the server from the
+  /// session whenever there is no Account Manager; exactly one of the two is set at a time.
+  managed_by                               String?                    @db.Uuid
+  created_at                              DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at                              DateTime?                  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by                              String?                    @db.Uuid
+  updated_by                              String?                    @db.Uuid
+  company_interview_rounds                company_interview_rounds[]
+  demands                                 demands[]
+  profiles_companies_account_managerToprofiles profiles?               @relation("companies_account_managerToprofiles", fields: [account_manager_id], references: [id], onUpdate: NoAction)
+  profiles_companies_managed_byToprofiles profiles?                    @relation("companies_managed_byToprofiles", fields: [managed_by], references: [id], onUpdate: NoAction)
+  profiles_companies_created_byToprofiles profiles?                  @relation("companies_created_byToprofiles", fields: [created_by], references: [id], onUpdate: NoAction)
+  profiles_companies_updated_byToprofiles profiles?                  @relation("companies_updated_byToprofiles", fields: [updated_by], references: [id], onUpdate: NoAction)
+  company_spocs                           company_spocs[]
+  onboarding_step_templates               onboarding_step_templates[]
+
+  @@index([account_manager_id])
+  @@index([managed_by])
+}
+
+/// Client-side contacts (name, email, phone). Not the internal Account Manager.
+model company_spocs {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_id  String    @db.Uuid
+  name        String    @db.VarChar(255)
+  email       String?   @db.VarChar(255)
+  phone       String?   @db.VarChar(50)
+  designation String?   @db.VarChar(100)
+  /// Free text (e.g. "BFSI", "Retail"). Not a master list.
+  vertical               String?   @db.VarChar(100)
+  supervisor             String?   @db.VarChar(255)
+  supervisor_designation String?   @db.VarChar(100)
+  /// Inactive SPOCs stay listed on the client and on demands that already use them, but are
+  /// not offered when picking SPOCs for a demand.
+  is_active   Boolean   @default(true)
+  sort_order  Int       @default(0)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  companies   companies @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([company_id])
+}
+
+/// End client of a demand (the customer's customer). Optional SPOC list.
+model end_clients {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name             String             @db.VarChar(255)
+  location         String?
+  description      String?
+  status           String             @default("ACTIVE") @db.VarChar(20)
+  created_by       String?            @db.Uuid
+  updated_by       String?            @db.Uuid
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  end_client_spocs end_client_spocs[]
+  demands          demands[]
+}
+
+model end_client_spocs {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  end_client_id String      @db.Uuid
+  name          String      @db.VarChar(255)
+  email         String?     @db.VarChar(255)
+  phone         String?     @db.VarChar(50)
+  designation   String?     @db.VarChar(100)
+  sort_order    Int         @default(0)
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  end_clients   end_clients @relation(fields: [end_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([end_client_id])
+}
+
+model company_interview_rounds {
+  id               String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_id       String           @db.Uuid
+  round_id         String           @db.Uuid
+  round_order      Int
+  mandatory        Boolean          @default(false)
+  /// Optional free-text interview mode for this round (e.g. "Video call", "In-person").
+  /// NULL is valid and is what every pre-existing round has: there is no global modes list
+  /// any more, so a blank mode simply means "no preference was recorded".
+  mode             String?          @db.VarChar(100)
+  /// Default true. An inactive round is hidden from new demands (and from the Add Demand round
+  /// picker) but stays on demands that already inherited it — see readCompanyRounds /
+  /// resolveConfiguredRounds (src/lib/demandFulfillment/interviewConfig.ts).
+  is_active        Boolean          @default(true)
+  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  companies        companies        @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interview_rounds interview_rounds @relation(fields: [round_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([company_id, round_order])
+  @@unique([company_id, round_id])
+  @@index([company_id])
+  @@index([round_id])
+}
+
+model client_contacts {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  client_id   String?   @db.Uuid
+  name        String    @db.VarChar(255)
+  email       String?   @db.VarChar(255)
+  phone       String?   @db.VarChar(50)
+  designation String?   @db.VarChar(100)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  clients     clients?  @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model clients {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String            @db.VarChar(255)
+  industry        String?           @db.VarChar(100)
+  location        String?           @db.VarChar(255)
+  notes           String?
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  client_contacts client_contacts[]
+}
+
+model demand_ta_allocations {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id    String?   @db.Uuid
+  ta_id        String?   @db.Uuid
+  allocated_at DateTime? @default(now()) @db.Timestamptz(6)
+  demands      demands?  @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles     profiles? @relation(fields: [ta_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([demand_id, ta_id])
+}
+
+model demands {
+  id                                                   String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  request_id                                           String                    @db.VarChar(50)
+  role_category                                        String?                   @db.VarChar(100)
+  client_name                                          String?                   @db.VarChar(255)
+  skill_description                                    String
+  technology_stack                                     String[]
+  /// Free-text chip list, entered the same way as `locations` — not tied to any master list.
+  experience_levels                                    String[]
+  locations                                            String[]
+  compensation_currency_id                             String?                   @db.Uuid
+  compensation_type_id                                 String?                   @db.Uuid
+  compensation_min                                     String?                   @db.VarChar(50)
+  compensation_max                                     String?                   @db.VarChar(50)
+  /// Rule: the skills-library role category picked in Required Skills. NOT `role_category` (Employment Type). NULL = never picked.
+  skills_category_id                                    String?                   @db.Uuid
+  num_positions                                        Int?                      @default(1)
+  status                                               String?                   @default("Open") @db.VarChar(50)
+  priority                                             String?                   @default("Medium") @db.VarChar(20)
+  created_by                                           String?                   @db.Uuid
+  opened_at                                            DateTime?                 @default(now()) @db.Timestamptz(6)
+  closed_at                                            DateTime?                 @db.Timestamptz(6)
+  created_at                                           DateTime?                 @default(now()) @db.Timestamptz(6)
+  updated_at                                           DateTime?                 @default(now()) @updatedAt @db.Timestamptz(6)
+  job_title                                            String?                   @db.VarChar(255)
+  /// Legacy single value; kept equal to work_modes[0] so older readers keep working.
+  work_mode                                            String?                   @db.VarChar(20)
+  /// One or more of DEMAND_WORK_MODE_VALUES. The source of truth for the demand's work mode.
+  work_modes                                           String[]                  @default([])
+  company_name                                        String?                   @db.VarChar(255)
+  company_email                                        String?                   @db.VarChar(255)
+  updated_by                                           String?                   @db.Uuid
+  company_id                                           String?                   @db.Uuid
+  contact_profile_id                                   String?                   @db.Uuid
+  spoc_profile_id                                      String?                   @db.Uuid
+  cloned_from_demand_id                                String?                   @db.Uuid
+  cloned_at                                            DateTime?                 @db.Timestamptz(6)
+  cloned_by                                            String?                   @db.Uuid
+  /// Optional end client (end_clients.id). Plain relation; the demand still stores the client via company_id.
+  end_client_id                                        String?                   @db.Uuid
+  /// Demand Type master value, stored as text so a rename never rewrites history. Not Proactive/Active.
+  demand_type                                          String?                   @db.VarChar(100)
+  /// Proactive or Active. Separate from `demand_type` (Technical / Non-Technical / Domain / General).
+  engagement_type                                      String?                   @db.VarChar(20)
+  /// The customer's own demand reference, distinct from Costaff's request_id.
+  client_demand_id                                     String?                   @db.VarChar(100)
+  intermediary_partner                                 String?                   @db.VarChar(255)
+  /// The customer's exact JD, stored separately from the working skill_description.
+  customer_jd                                          String?
+  /// Uploaded Customer JD file (under public/uploads/jd). Independent of the pasted text.
+  customer_jd_file_url                                 String?
+  customer_jd_file_name                                String?                   @db.VarChar(255)
+  /// Free text, like experience_levels ("8+ yrs", "5-7 yrs").
+  total_experience                                     String?                   @db.VarChar(100)
+  relevant_experience                                  String?                   @db.VarChar(100)
+  /// [{ name, type }] with type in DEMAND_CERTIFICATION_TYPES (Technical | Behavioral | Others).
+  certifications                                       Json                      @default("[]")
+  candidate_conversations                              candidate_conversations[]
+  demand_call_logs                                     demand_call_logs[]
+  demand_instructions                                  demand_instructions[]
+  /// Company SPOC ids currently assigned to this demand. The changelog is demand_assignment_events.
+  client_spoc_ids                                      String[]                  @default([])
+  demand_assignments                                   demand_assignments[]
+  demand_assignment_events                             demand_assignment_events[]
+  demand_interview_config                              demand_interview_config?
+  demand_interview_rounds                              demand_interview_rounds[]
+  demand_status_events                                 demand_status_events[]
+  demand_change_events                                 demand_change_events[]
+  demand_ta_allocations                                demand_ta_allocations[]
+  companies                                         companies?                @relation(fields: [company_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  end_clients                                          end_clients?              @relation(fields: [end_client_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  skill_categories                                     skill_categories?         @relation(fields: [skills_category_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  profiles_demands_contact_profileToprofiles           profiles?                 @relation("demands_contact_profileToprofiles", fields: [contact_profile_id], references: [id], onUpdate: NoAction)
+  profiles_demands_created_byToprofiles                profiles?                 @relation("demands_created_byToprofiles", fields: [created_by], references: [id], onUpdate: NoAction)
+  profiles_demands_spoc_profileToprofiles              profiles?                 @relation("demands_spoc_profileToprofiles", fields: [spoc_profile_id], references: [id], onUpdate: NoAction)
+  profiles_demands_updated_byToprofiles                profiles?                 @relation("demands_updated_byToprofiles", fields: [updated_by], references: [id], onUpdate: NoAction)
+  profiles_demands_cloned_byToprofiles                 profiles?                 @relation("demands_cloned_byToprofiles", fields: [cloned_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  demands_demands_cloned_from_demand_idTodemands       demands?                  @relation("demands_cloned_from_demand_idTodemands", fields: [cloned_from_demand_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  other_demands_demands_cloned_from_demand_idTodemands demands[]                 @relation("demands_cloned_from_demand_idTodemands")
+  compensation_currencies                              compensation_currencies?  @relation(fields: [compensation_currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  compensation_types                                   compensation_types?       @relation(fields: [compensation_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  interviews                                           interviews[]
+  offers                                               offers[]
+  onboardings                                          onboardings[]
+  submissions                                          submissions[]
+
+  @@index([compensation_currency_id])
+  @@index([compensation_type_id])
+  @@index([cloned_from_demand_id])
+  @@index([company_id])
+  @@index([skills_category_id])
+  @@index([end_client_id])
+}
+
+/// Demand Category master (FTE, Contractor, C2H, plus the employment types already on demands).
+/// `demands.role_category` stores the name as text.
+model demand_categories {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String   @unique @db.VarChar(100)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+/// Demand phase master. Seeded with the current lifecycle names. Tabs are not driven by this table yet.
+model demand_phases {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String   @unique @db.VarChar(100)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+/// Work locations offered on the demand form. `demands.locations` stays a text array of these names.
+model locations {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String   @unique @db.VarChar(100)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+/// Demand Type (Technical, Non-Technical, Domain, General). Not the later Proactive/Active flag.
+model demand_types {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String   @unique @db.VarChar(100)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  demand_type_skill_categories demand_type_skill_categories[]
+}
+
+/// Skill Groups suggested for a Demand Type. Picking the type on the demand form narrows the
+/// Skill Group picker to these (with a "show all" escape). No rows = no narrowing.
+model demand_type_skill_categories {
+  demand_type_id    String           @db.Uuid
+  skill_category_id String           @db.Uuid
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  demand_types      demand_types     @relation(fields: [demand_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  skill_categories  skill_categories @relation(fields: [skill_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([demand_type_id, skill_category_id])
+  @@index([skill_category_id])
+}
+
+/// Interview status master. `is_transition` is false for the creation-only Scheduled status.
+/// `requires_result` marks Completed so a rename keeps the result rule on the row.
+model interview_statuses {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String   @unique @db.VarChar(100)
+  sort_order      Int      @default(0)
+  is_active       Boolean  @default(true)
+  is_transition   Boolean  @default(true)
+  requires_result Boolean  @default(false)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model compensation_currencies {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code       String    @unique @db.VarChar(10)
+  name       String    @db.VarChar(100)
+  symbol     String    @db.VarChar(10)
+  sort_order Int       @default(0)
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  demands    demands[]
+}
+
+model compensation_types {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String    @unique @db.VarChar(50)
+  sort_order Int       @default(0)
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  demands    demands[]
+}
+
+model dropdown_masters {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  category   String    @db.VarChar(100)
+  value      String    @db.VarChar(255)
+  sort_order Int?      @default(0)
+  is_active  Boolean?  @default(true)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model interviews {
+  id                                       String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  submission_id                            String?                  @db.Uuid
+  demand_id                                String?                  @db.Uuid
+  candidate_id                             String?                  @db.Uuid
+  scheduled_by                             String?                  @db.Uuid
+  level                                    String?                  @db.VarChar(50)
+  skill_tested                             String?                  @db.VarChar(255)
+  mode                                     String?                  @default("Video") @db.VarChar(50)
+  scheduled_date                           DateTime                 @db.Date
+  scheduled_time                           DateTime?                @db.Time(6)
+  status                                   String?                  @default("Scheduled") @db.VarChar(100)
+  link_status                              String?                  @db.VarChar(100)
+  feedback                                 String?
+  created_at                               DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at                               DateTime?                @default(now()) @updatedAt @db.Timestamptz(6)
+  round_order                              Int?
+  duration_minutes                         Int?
+  meeting_link                             String?
+  result                                   String?                  @db.VarChar(20)
+  remark                                   String?
+  created_by                               String?                  @db.Uuid
+  interview_type                           String?                  @db.VarChar(50)
+  /// Where the interview happens: Teams or Direct_Call. Distinct from mode (InPerson / Video).
+  interview_location                       String?                  @db.VarChar(50)
+  end_time                                 DateTime?                @db.Time(6)
+  updated_by                               String?                  @db.Uuid
+  round_id                                 String?                  @db.Uuid
+  candidates                               candidates?              @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_interviews_created_byToprofiles profiles?                @relation("interviews_created_byToprofiles", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  demands                                  demands?                 @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  demand_interview_rounds                  demand_interview_rounds? @relation(fields: [round_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles                                 profiles?                @relation(fields: [scheduled_by], references: [id], onUpdate: NoAction)
+  submissions                              submissions?             @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_interviews_updated_byToprofiles profiles?                @relation("interviews_updated_byToprofiles", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([submission_id])
+  @@index([round_id])
+}
+
+model offers {
+  id            String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  submission_id String?       @db.Uuid
+  demand_id     String?       @db.Uuid
+  candidate_id  String?       @db.Uuid
+  offered_ctc   Decimal?      @db.Decimal(10, 2)
+  offer_date    DateTime?     @default(dbgenerated("CURRENT_DATE")) @db.Date
+  status        String?       @default("Pending") @db.VarChar(50)
+  notes         String?
+  created_at    DateTime?     @default(now()) @db.Timestamptz(6)
+  candidates    candidates?   @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  demands       demands?      @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  submissions   submissions?  @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  onboardings   onboardings[]
+}
+
+model onboardings {
+  id                  String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  offer_id            String?      @db.Uuid
+  demand_id           String?      @db.Uuid
+  candidate_id        String?      @db.Uuid
+  bgv_status          String?      @default("in_progress") @db.VarChar(50)
+  actual_joining_date DateTime?    @db.Date
+  status              String?      @default("yet_to_join") @db.VarChar(100)
+  notes               String?
+  created_at          DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?    @default(now()) @db.Timestamptz(6)
+  documents_status    Json         @default("[]")
+  bgv_remark          String?
+  offer_released_at   DateTime?    @db.Timestamptz(6)
+  offer_accepted_at   DateTime?    @db.Timestamptz(6)
+  joined_at           DateTime?    @db.Timestamptz(6)
+  closure_due_at      DateTime?    @db.Timestamptz(6)
+  closure_feedback    String?
+  closed_at           DateTime?    @db.Timestamptz(6)
+  remark              String?
+  submission_id       String?      @unique @db.Uuid
+  candidates          candidates?  @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  demands             demands?     @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  offers              offers?      @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  submissions         submissions? @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  onboarding_steps    onboarding_steps[]
+
+  @@index([closure_due_at], where: raw("(closed_at IS NULL)"))
+}
+
+/// Ordered onboarding step list. company_id NULL = the default list used by clients that have
+/// none of their own. Copied into onboarding_steps when a candidate's onboarding first opens,
+/// so later edits here never change an onboarding already in progress.
+model onboarding_step_templates {
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_id          String?            @db.Uuid
+  name                String             @db.VarChar(150)
+  details             String?
+  requires_attachment Boolean            @default(false)
+  sort_order          Int                @default(0)
+  is_active           Boolean            @default(true)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  companies           companies?         @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  onboarding_steps    onboarding_steps[]
+
+  @@index([company_id])
+}
+
+/// One candidate's copy of a step. Order is guidance only: any step can be updated at any time.
+model onboarding_steps {
+  id                        String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  onboarding_id             String                     @db.Uuid
+  template_step_id          String?                    @db.Uuid
+  name                      String                     @db.VarChar(150)
+  details                   String?
+  requires_attachment       Boolean                    @default(false)
+  step_order                Int
+  /// ONBOARDING_STEP_STATUS_VALUES: pending | in_progress | completed | not_applicable
+  status                    String                     @default("pending") @db.VarChar(30)
+  attachment_url            String?
+  attachment_name           String?                    @db.VarChar(255)
+  remark                    String?
+  completed_at              DateTime?                  @db.Timestamptz(6)
+  updated_by                String?                    @db.Uuid
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  onboardings               onboardings                @relation(fields: [onboarding_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  onboarding_step_templates onboarding_step_templates? @relation(fields: [template_step_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  profiles                  profiles?                  @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([onboarding_id, step_order])
+}
+
+/// Field-level change log for a demand: `scope` is 'demand' (the demand's own fields) or
+/// 'candidate' (a candidate in this demand's pipeline, any phase). Assignment, status and
+/// pipeline moves keep their own event tables and are merged in at read time.
+model demand_change_events {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id    String    @db.Uuid
+  scope        String    @db.VarChar(20)
+  entity_id    String?   @db.Uuid
+  entity_label String?   @db.VarChar(255)
+  field        String    @db.VarChar(100)
+  old_value    String?
+  new_value    String?
+  created_by   String?   @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  demands      demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles     profiles? @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([demand_id, created_at])
+}
+
+model profiles {
+  id                                                          String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email                                                       String                    @unique @db.VarChar(255)
+  full_name                                                   String                    @db.VarChar(255)
+  role                                                        String                    @db.VarChar(50)
+  phone                                                       String?                   @db.VarChar(50)
+  is_active                                                   Boolean?                  @default(true)
+  created_at                                                  DateTime?                 @default(now()) @db.Timestamptz(6)
+  updated_at                                                  DateTime?                 @default(now()) @db.Timestamptz(6)
+  password_hash                                               String?
+  first_name                                                  String?                   @db.VarChar(255)
+  last_name                                                   String?                   @db.VarChar(255)
+  date_of_joining                                             DateTime?                 @db.Date
+  status                                                      String                    @default("ACTIVE") @db.VarChar(20)
+  candidates_candidates_added_byToprofiles                    candidates[]              @relation("candidates_added_byToprofiles")
+  candidates_candidates_updated_byToprofiles                  candidates[]              @relation("candidates_updated_byToprofiles")
+  companies_companies_created_byToprofiles                    companies[]               @relation("companies_created_byToprofiles")
+  companies_companies_updated_byToprofiles                    companies[]               @relation("companies_updated_byToprofiles")
+  companies_companies_account_managerToprofiles              companies[]               @relation("companies_account_managerToprofiles")
+  companies_companies_managed_byToprofiles                   companies[]               @relation("companies_managed_byToprofiles")
+  demand_assignments_demand_assignments_assigned_byToprofiles demand_assignments[]      @relation("demand_assignments_assigned_byToprofiles")
+  demand_assignments_demand_assignments_user_idToprofiles     demand_assignments[]      @relation("demand_assignments_user_idToprofiles")
+  demand_interview_config                                     demand_interview_config[]
+  demand_status_events                                        demand_status_events[]
+  demand_ta_allocations                                       demand_ta_allocations[]
+  demands_demands_contact_profileToprofiles                   demands[]                 @relation("demands_contact_profileToprofiles")
+  demands_demands_created_byToprofiles                        demands[]                 @relation("demands_created_byToprofiles")
+  demands_demands_spoc_profileToprofiles                      demands[]                 @relation("demands_spoc_profileToprofiles")
+  demands_demands_updated_byToprofiles                        demands[]                 @relation("demands_updated_byToprofiles")
+  demands_demands_cloned_byToprofiles                         demands[]                 @relation("demands_cloned_byToprofiles")
+  interviews_interviews_created_byToprofiles                  interviews[]              @relation("interviews_created_byToprofiles")
+  interviews                                                  interviews[]
+  interviews_interviews_updated_byToprofiles                  interviews[]              @relation("interviews_updated_byToprofiles")
+  notifications                                               notifications[]
+  submission_events                                           submission_events[]
+  submissions_submissions_added_byToprofiles                  submissions[]             @relation("submissions_added_byToprofiles")
+  submissions_submissions_managed_by_amToprofiles             submissions[]             @relation("submissions_managed_by_amToprofiles")
+  submissions_submissions_submitted_by_taToprofiles           submissions[]             @relation("submissions_submitted_by_taToprofiles")
+  super_admin_settings                                        super_admin_settings[]
+  onboarding_steps                                            onboarding_steps[]
+  demand_change_events                                        demand_change_events[]
+  candidate_conversations                                     candidate_conversations[]
+  task_logs                                                   task_logs[]
+  todo_items                                                  todo_items[]
+  demand_call_logs                                            demand_call_logs[]
+  demand_instructions                                         demand_instructions[]
+}
+
+/// Call Log: a call about a candidate for a demand, by anyone who may source for it. "fit" puts
+/// the candidate into the pipeline as Sourced (submission_id); "not_fit" keeps the profile in the
+/// candidate database with a fail reason (DB check: not_fit needs a reason).
+model demand_call_logs {
+  id            String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id     String       @db.Uuid
+  candidate_id  String       @db.Uuid
+  /// CALL_OUTCOME_VALUES: fit | not_fit
+  outcome       String       @db.VarChar(10)
+  /// FITMENT_FAIL_REASONS (or free text via "Other"). Required when outcome = not_fit.
+  fail_reason   String?      @db.VarChar(100)
+  notes         String?
+  /// The pipeline row a "fit" call created or reactivated. NULL for not_fit.
+  submission_id String?      @db.Uuid
+  created_by    String?      @db.Uuid
+  created_at    DateTime     @default(now()) @db.Timestamptz(6)
+  demands       demands      @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  candidates    candidates   @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  submissions   submissions? @relation(fields: [submission_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  profiles      profiles?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([demand_id, created_at])
+  @@index([created_by])
+  @@index([candidate_id])
+}
+
+/// Instruction Log: what the customer asked for (meetings, emails, calls), entered by the demand's
+/// AM / SPOC / Delivery Head for the recruiters to follow.
+model demand_instructions {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id        String    @db.Uuid
+  /// INSTRUCTION_SOURCE_VALUES: meeting | email | call | other
+  source           String    @default("meeting") @db.VarChar(20)
+  instruction_date DateTime  @db.Date
+  content          String
+  created_by       String?   @db.Uuid
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  demands          demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles         profiles? @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([demand_id, instruction_date])
+}
+
+/// Task Log: what a person worked on (any task, not only demands). Own rows only, except
+/// Super Admin who sees everyone's (canViewAllTaskLogs).
+model task_logs {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  task_name  String    @db.VarChar(200)
+  details    String?
+  start_date DateTime  @db.Date
+  /// NULL = still ongoing. Never before start_date (DB check).
+  end_date   DateTime? @db.Date
+  remarks    String?
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  profiles   profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, start_date])
+  @@index([start_date])
+}
+
+/// To-Do List: priority items an AM / SPOC / Delivery Head publishes to everyone for a period
+/// (active_from..active_until). Drafts (is_published = false) are visible to their author only.
+model todo_items {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title        String    @db.VarChar(200)
+  details      String?
+  /// TODO_PRIORITY_VALUES: High | Medium | Low
+  priority     String    @default("Medium") @db.VarChar(10)
+  active_from  DateTime  @db.Date
+  active_until DateTime  @db.Date
+  /// TODO_STATUS_VALUES: open | done
+  status       String    @default("open") @db.VarChar(10)
+  is_published Boolean   @default(false)
+  published_at DateTime? @db.Timestamptz(6)
+  created_by   String    @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  profiles     profiles  @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_published, active_from, active_until], map: "todo_items_published_active_idx")
+  @@index([created_by])
+}
+
+/// Conversation log with a candidate (calls, WhatsApp, email, meetings). Append-only.
+model candidate_conversations {
+  id           String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  candidate_id String     @db.Uuid
+  /// Optional: the requirement the conversation was about.
+  demand_id    String?    @db.Uuid
+  /// CANDIDATE_CONVERSATION_CHANNELS: call | whatsapp | email | meeting | other
+  channel      String     @default("call") @db.VarChar(20)
+  content      String
+  created_by   String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  candidates   candidates @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  demands      demands?   @relation(fields: [demand_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  profiles     profiles?  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([candidate_id, created_at])
+}
+
+model submissions {
+  id                                             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id                                      String?             @db.Uuid
+  candidate_id                                   String?             @db.Uuid
+  submitted_by_ta                                String?             @db.Uuid
+  managed_by_am                                  String?             @db.Uuid
+  stage                                          String?             @default("submitted_for_am_review") @db.VarChar(100)
+  remarks                                        String?
+  created_at                                     DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at                                     DateTime?           @default(now()) @db.Timestamptz(6)
+  current_status                                 String              @default("sourced") @db.VarChar(30)
+  /// active = inside the per-position cap; backup = uploaded after the active slots were full.
+  sourcing_type                                  String?             @default("active") @db.VarChar(20)
+  /// Pipeline entry source — mirrors candidate's source when not explicitly set.
+// No default; create/update paths fill from candidate.source or leave empty.
+source                                         String?             @db.VarChar(20)
+  position_slot                                  Int?
+  added_by                                       String?             @db.Uuid
+  is_active                                      Boolean             @default(true)
+  final_result                                   String?             @db.VarChar(20)
+  interviews                                     interviews[]
+  offers                                         offers[]
+  onboardings                                    onboardings?
+  submission_events                              submission_events[]
+  demand_call_logs                               demand_call_logs[]
+  profiles_submissions_added_byToprofiles        profiles?           @relation("submissions_added_byToprofiles", fields: [added_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  candidates                                     candidates?         @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  demands                                        demands?            @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_submissions_managed_by_amToprofiles   profiles?           @relation("submissions_managed_by_amToprofiles", fields: [managed_by_am], references: [id], onUpdate: NoAction)
+  profiles_submissions_submitted_by_taToprofiles profiles?           @relation("submissions_submitted_by_taToprofiles", fields: [submitted_by_ta], references: [id], onUpdate: NoAction)
+
+  @@index([demand_id, current_status])
+}
+
+model demand_assignments {
+  id                                                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id                                         String    @db.Uuid
+  user_id                                           String    @db.Uuid
+  role_in_demand                                    String    @db.VarChar(20)
+  assigned_by                                       String?   @db.Uuid
+  assigned_at                                       DateTime  @default(now()) @db.Timestamptz(6)
+  is_active                                         Boolean   @default(true)
+  remark                                            String?
+  profiles_demand_assignments_assigned_byToprofiles profiles? @relation("demand_assignments_assigned_byToprofiles", fields: [assigned_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  demands                                           demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_demand_assignments_user_idToprofiles     profiles  @relation("demand_assignments_user_idToprofiles", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([demand_id])
+  @@index([user_id])
+}
+
+model demand_interview_config {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id  String    @unique @db.Uuid
+  rounds     Json
+  updated_by String?   @db.Uuid
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  demands    demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles   profiles? @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model demand_interview_rounds {
+  id               String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id        String            @db.Uuid
+  name             String            @db.VarChar(100)
+  round_order      Int
+  mandatory        Boolean           @default(false)
+  /// Snapshot of the company round's mode at the time this demand copy was materialised, so a
+  /// demand keeps its own wording even after the company round is edited. NULL = not recorded.
+  mode             String?           @db.VarChar(100)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  master_round_id  String?           @db.Uuid
+  demands          demands           @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interviews       interviews[]
+  interview_rounds interview_rounds? @relation("demand_interview_rounds_master", fields: [master_round_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([demand_id, round_order])
+  @@index([demand_id])
+  @@index([master_round_id])
+}
+
+
+model notifications {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id     String    @db.Uuid
+  type        String    @db.VarChar(50)
+  title       String    @db.VarChar(255)
+  message     String
+  entity_type String?   @db.VarChar(50)
+  entity_id   String?   @db.Uuid
+  is_read     Boolean   @default(false)
+  read_at     DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  dedupe_key  String?   @db.VarChar(255)
+
+  profiles profiles @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// Append-only log of assign and unassign, one row per person per action, grouped by resource category.
+model demand_assignment_events {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id    String    @db.Uuid
+  category     String    @db.VarChar(30)
+  action       String    @db.VarChar(20)
+  subject_id   String?   @db.Uuid
+  subject_label String?  @db.VarChar(255)
+  created_by   String?   @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  demands      demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([demand_id, created_at])
+}
+
+model demand_status_events {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  demand_id   String    @db.Uuid
+  from_status String?   @db.VarChar(50)
+  to_status   String    @db.VarChar(50)
+  remark      String?
+  created_by  String?   @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  profiles    profiles? @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  demands     demands   @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([demand_id, created_at])
+}
+
+model submission_events {
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  submission_id  String      @db.Uuid
+  event_type     String      @db.VarChar(30)
+  from_status    String?     @db.VarChar(30)
+  to_status      String?     @db.VarChar(30)
+  content        String?
+  attachment_url String?
+  created_by     String?     @db.Uuid
+  created_at     DateTime    @default(now()) @db.Timestamptz(6)
+  metadata       Json?
+  follow_up_at   DateTime?   @db.Date
+  profiles       profiles?   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submissions    submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([submission_id, created_at])
+}
+
+model super_admin_settings {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  key        String    @unique @db.VarChar(50)
+  value      Json
+  updated_by String?   @db.Uuid
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  profiles   profiles? @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}

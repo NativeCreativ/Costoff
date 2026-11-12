@@ -1,0 +1,36 @@
+# dependencies
+/node_modules
+/.pnpm
+/.yarn
+
+# next.js build output
+/.next/
+/out/
+
+# production
+/build
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+/.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Onboarding files saved by the local upload route
+/public/uploads
+
+# Large excel tracking data file
+*.xlsx
+*.csv
+
+/src/generated/prisma

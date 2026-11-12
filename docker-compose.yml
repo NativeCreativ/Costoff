@@ -1,0 +1,64 @@
+# Isolated Costaff ATS test stack. From the repo root:
+#   docker compose up --build
+#
+# Set POSTGRES_PASSWORD and SESSION_SECRET in the environment or a gitignored .env.
+# Placeholders below only exist so `docker compose config` works before those are set.
+
+name: costaff-ats
+
+services:
+  costaff-ats-db:
+    image: postgres:16-alpine
+    container_name: costaff-ats-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-costaff}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-costaff_ats}
+    volumes:
+      - costaff-ats-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  costaff-ats-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: costaff-ats
+    container_name: costaff-ats-app
+    depends_on:
+      costaff-ats-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-costaff}:${POSTGRES_PASSWORD:-change-me}@costaff-ats-db:5432/${POSTGRES_DB:-costaff_ats}
+      SESSION_SECRET: ${SESSION_SECRET:-replace-with-openssl-rand-base64-48}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      NODE_ENV: production
+      # Empty means "detect from the request". Set true or false to override.
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${COSTAFF_ATS_PORT:-3000}:3000"
+    volumes:
+      - costaff-ats-uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  costaff-ats-postgres-data:
+    name: costaff-ats-postgres-data
+  costaff-ats-uploads:
+    name: costaff-ats-uploads
