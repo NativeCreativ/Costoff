@@ -35,6 +35,8 @@ export function toDemandCertifications(value: unknown): DemandCertification[] {
 
 /** Uploaded Customer JD file: a path under /uploads/jd/ returned by POST /api/uploads/jd. */
 export const CUSTOMER_JD_FILE_URL_PREFIX = '/uploads/jd/';
+/** Same file on the live site, where uploads live in Netlify Blobs (see uploadStorage.ts). */
+export const CUSTOMER_JD_BLOB_URL_PREFIX = '/api/files/jd/';
 
 /** Compensation bounds are plain free text — never parsed, never reformatted. The only
  *  constraint is length (the DB column is VARCHAR(50)); "" means "not specified". */
@@ -152,7 +154,10 @@ export const demandApiSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .refine((v) => v === '' || (v.startsWith(CUSTOMER_JD_FILE_URL_PREFIX) && !v.includes('..')), 'Invalid Customer JD file')
+    .refine(
+      (v) => v === '' || ((v.startsWith(CUSTOMER_JD_FILE_URL_PREFIX) || v.startsWith(CUSTOMER_JD_BLOB_URL_PREFIX)) && !v.includes('..')),
+      'Invalid Customer JD file'
+    )
     .nullable()
     .optional(),
   customer_jd_file_name: z.string().trim().max(255).nullable().optional(),

@@ -1,11 +1,9 @@
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
 import { NextResponse } from 'next/server';
+import { storeUpload } from '@/lib/storage/uploadStorage';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { canManageDemandPipeline } from '@/lib/auth/demandFulfillmentPermissions';
 import { loadOnboardingStepContext } from '@/lib/onboarding/loadOnboardingStepContext';
-import { ONBOARDING_STEP_UPLOAD_DIR } from '@/lib/onboarding/onboardingSteps';
 import { recordDemandChanges } from '@/lib/demands/demandChangeLog';
 
 const MAX_STEP_FILE_BYTES = 8 * 1024 * 1024;
@@ -37,11 +35,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'document';
-    const relativeDir = path.join(...ONBOARDING_STEP_UPLOAD_DIR, id, 'steps', stepId);
-    await mkdir(path.join(process.cwd(), 'public', relativeDir), { recursive: true });
-    const storedName = `${Date.now()}-${safeName}`;
-    await writeFile(path.join(process.cwd(), 'public', relativeDir, storedName), Buffer.from(await file.arrayBuffer()));
-    const url = `/${relativeDir.replace(/\\/g, '/')}/${storedName}`;
+    // Disk locally, Netlify Blobs on the live site (uploadStorage.ts).
+    const url = await storeUpload(`onboarding/${id}/steps/${stepId}/${Date.now()}-${safeName}`, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+      fileName: file.name.slice(0, 255),
+    });
 
     const updated = await prisma.$transaction(async (tx) => {
       const row = await tx.onboarding_steps.update({

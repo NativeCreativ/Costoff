@@ -1,6 +1,5 @@
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
 import { NextResponse } from 'next/server';
+import { storeUpload } from '@/lib/storage/uploadStorage';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { canManageDemandPipeline } from '@/lib/auth/demandFulfillmentPermissions';
@@ -40,12 +39,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: 'Keep each document under 8 MB' }, { status: 400 });
       }
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
-      const relativeDir = path.join('uploads', 'onboarding', id);
-      const absoluteDir = path.join(process.cwd(), 'public', relativeDir);
-      await mkdir(absoluteDir, { recursive: true });
-      const storedName = `${Date.now()}-${safeName}`;
-      await writeFile(path.join(absoluteDir, storedName), Buffer.from(await file.arrayBuffer()));
-      const url = `/${relativeDir.replace(/\\/g, '/')}/${storedName}`;
+      // Disk locally, Netlify Blobs on the live site (uploadStorage.ts).
+      const url = await storeUpload(`onboarding/${id}/${Date.now()}-${safeName}`, Buffer.from(await file.arrayBuffer()), {
+        contentType: file.type,
+        fileName: file.name.slice(0, 255),
+      });
       const existingDocs = Array.isArray(onboarding.documents_status) ? onboarding.documents_status as { name: string; required?: boolean; received?: boolean; url?: string }[] : [];
       const nextDocs = existingDocs.some((doc) => doc.name === name)
         ? existingDocs.map((doc) => doc.name === name ? { ...doc, received: true, url } : doc)

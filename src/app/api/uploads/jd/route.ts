@@ -1,10 +1,9 @@
-import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
+import { storeUpload } from '@/lib/storage/uploadStorage';
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { canCreateDemand } from '@/lib/auth/demandPermissions';
-import { CUSTOMER_JD_FILE_URL_PREFIX } from '@/components/demands/demand.schema';
 
 const MAX_JD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_JD_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.rtf'];
@@ -39,12 +38,14 @@ export async function POST(request: Request) {
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || `jd${extension}`;
     const folder = randomUUID();
-    const absoluteDir = path.join(process.cwd(), 'public', 'uploads', 'jd', folder);
-    await mkdir(absoluteDir, { recursive: true });
-    await writeFile(path.join(absoluteDir, safeName), Buffer.from(await file.arrayBuffer()));
+    // Disk locally, Netlify Blobs on the live site (uploadStorage.ts).
+    const url = await storeUpload(`jd/${folder}/${safeName}`, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+      fileName: file.name.slice(0, 255),
+    });
 
     return NextResponse.json({
-      url: `${CUSTOMER_JD_FILE_URL_PREFIX}${folder}/${safeName}`,
+      url,
       name: file.name.slice(0, 255),
       success: true,
     });

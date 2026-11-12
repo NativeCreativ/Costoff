@@ -21,6 +21,7 @@
     "@fullcalendar/react": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
     "@hookform/resolvers": "^5.9.1",
+    "@netlify/blobs": "^8.2.0",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "@radix-ui/react-dialog": "^1.1.23",

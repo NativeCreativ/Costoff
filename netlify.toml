@@ -1,0 +1,14 @@
+# Netlify build for Costaff ATS (Next.js App Router + Prisma 7 on Postgres).
+# The Prisma client is generated at build time (src/generated is not committed).
+# Site environment variables (set in the Netlify UI / CLI, never here):
+#   DATABASE_URL     Neon pooled connection string (secret)
+#   SESSION_SECRET   random 48-byte base64 (secret)
+#   UPLOAD_STORAGE   "netlify-blobs" — uploads go to Netlify Blobs (src/lib/storage/uploadStorage.ts)
+# Database migrations are NOT run on deploy; apply them with `prisma migrate deploy` first.
+
+[build]
+  command = "npx prisma generate --config prisma7.config.ts && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
