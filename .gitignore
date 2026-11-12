@@ -34,3 +34,6 @@ next-env.d.ts
 *.csv
 
 /src/generated/prisma
+
+# Local Netlify folder
+.netlify

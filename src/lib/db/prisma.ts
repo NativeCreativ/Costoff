@@ -5,7 +5,9 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+// DATABASE_URL everywhere we set it ourselves (local, Docker, Neon). On Netlify with Netlify
+// Database the platform injects NETLIFY_DB_URL instead, so fall back to it.
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL || process.env.NETLIFY_DB_URL });
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
