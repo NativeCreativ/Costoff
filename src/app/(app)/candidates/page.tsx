@@ -95,11 +95,11 @@ export default function CandidatesPage() {
    *  scheduled interview). Surfaces the server's reason in a dialog instead of a native alert. */
   const [deleteBlocked, setDeleteBlocked] = useState<{ candidateName: string; message: string } | null>(null);
 
-  // A Recruiter (ta) or Account Manager has no master-pool create permission — the API
-  // requires a demand they're assigned to / own (POST /api/candidates). super_admin creates
-  // straight into the master pool, no demand needed.
+  // The Requirement is OPTIONAL for everyone who may add candidates (client decision, Nov
+  // 2026): empty = the candidate goes into the database only; picked = also added to that
+  // demand's pipeline. POST /api/candidates re-checks both cases server-side.
   const currentUserRole = currentUserQuery.data?.role;
-  const isScopedCreator = currentUserRole === 'ta' || currentUserRole === 'account_manager';
+  const canPickRequirement = canWriteCandidates(currentUserRole);
   const [createDemandId, setCreateDemandId] = useState('');
   const [createDemandSearch, setCreateDemandSearch] = useState('');
   // GET /api/demands already scopes to the actor's own demands server-side (ta via
@@ -114,7 +114,7 @@ export default function CandidatesPage() {
       uploadable: true,
       pageSize: 20,
     },
-    { enabled: isScopedCreator && showCandidateModal }
+    { enabled: canPickRequirement && showCandidateModal }
   );
   const createDemandOptions = (createDemandsQuery.data?.data ?? []).map((d) => ({
     id: d.id,
@@ -132,14 +132,9 @@ export default function CandidatesPage() {
 
   const handleCreateCandidate = (values: CandidateFormState) => {
     setCandidateDedupeError(null);
-    if (isScopedCreator && !createDemandId) {
-      setCandidateDedupeError('Select a Requirement to add this candidate to.');
-      return;
-    }
-    // requestId is omitted for the master-pool create (super_admin); for a Recruiter/Account
-    // Manager it links the new candidate to the chosen demand in the same call — the API
-    // re-derives and re-checks their assignment/ownership of that demand server-side.
-    createCandidateMutation.mutate({ form: values, requestId: isScopedCreator ? createDemandId : undefined }, {
+    // No requestId = database only; with one, the candidate is also linked to that demand in the
+    // same call (the API re-checks the user may add profiles to it).
+    createCandidateMutation.mutate({ form: values, requestId: createDemandId || undefined }, {
       onSuccess: () => {
         setShowCandidateModal(false);
         setCandidateForm(emptyCandidateForm);
@@ -267,19 +262,18 @@ export default function CandidatesPage() {
           handleCreateCandidate={handleCreateCandidate}
           isSubmitting={createCandidateMutation.isPending}
           demandPicker={
-            isScopedCreator ? (
+            canPickRequirement ? (
               <EntitySelect
                 mode="single"
-                label="Requirement"
-                required
-                placeholder="Select one of your Requirements…"
+                label="Requirement (optional)"
+                placeholder="None — add to the candidate database only"
                 searchPlaceholder="Search by Request ID, Company or Job Title…"
                 options={createDemandOptions}
                 value={createDemandId}
                 onChange={setCreateDemandId}
                 onSearchChange={setCreateDemandSearch}
                 isLoading={createDemandsQuery.isLoading}
-                emptyLabel="No requirement matches — you can only add candidates to a Requirement you're assigned to."
+                emptyLabel="No requirement matches your search."
               />
             ) : undefined
           }

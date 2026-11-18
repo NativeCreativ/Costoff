@@ -78,3 +78,24 @@ describe('client SPOCs from the demand form', () => {
     expect(canManageCompanySpocsFromDemand('ta', 'ta1', 'ta1')).toBe(false);
   });
 });
+
+describe('candidates added without a demand (master pool)', () => {
+  // Imported lazily so this block stays self-contained.
+  it('lets Recruiters and AMs add, and the creator see and edit their own pool entry', async () => {
+    const { MASTER_POOL_CREATE_ROLES } = await import('@/lib/auth/recordPermissions');
+    const { canAccessCandidate, canEditCandidate } = await import('@/lib/auth/candidatePermissions');
+    expect(MASTER_POOL_CREATE_ROLES).toEqual(expect.arrayContaining(['super_admin', 'ta', 'account_manager']));
+    expect(MASTER_POOL_CREATE_ROLES).not.toContain('viewer');
+
+    const pool = { demands: [], added_by: 'am1' };
+    expect(canAccessCandidate({ role: 'account_manager', id: 'am1' }, pool)).toBe(true);
+    expect(canEditCandidate({ role: 'account_manager', id: 'am1' }, pool)).toBe(true);
+    // Another AM neither sees nor edits it; a Recruiter sees every candidate but edits only their own.
+    expect(canAccessCandidate({ role: 'account_manager', id: 'am2' }, pool)).toBe(false);
+    expect(canEditCandidate({ role: 'account_manager', id: 'am2' }, pool)).toBe(false);
+    expect(canAccessCandidate({ role: 'ta', id: 'ta1' }, pool)).toBe(true);
+    expect(canEditCandidate({ role: 'ta', id: 'ta1' }, pool)).toBe(false);
+    expect(canEditCandidate({ role: 'ta', id: 'ta1' }, { demands: [], added_by: 'ta1' })).toBe(true);
+    expect(canEditCandidate({ role: 'super_admin', id: 'dh' }, pool)).toBe(true);
+  });
+});

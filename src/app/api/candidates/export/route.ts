@@ -113,7 +113,8 @@ export async function GET(request: Request) {
     };
 
     const scopeFilter = await buildCandidateScopeFilter({ role: currentUser.role, id: currentUser.userId });
-    if (scopeFilter) Object.assign(where, scopeFilter);
+    // AND-ed so a scope using `OR` can never be replaced by (or replace) the search's `OR`.
+    if (scopeFilter) where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), scopeFilter];
 
     if (requestId) {
       const demand = await loadDemandContext(requestId);

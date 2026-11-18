@@ -91,6 +91,9 @@ export interface CandidateDemandScope {
 export interface CandidateAccessContext {
   candidateId: string;
   demands: CandidateDemandScope[];
+  /** candidates.added_by — who put the profile in the database. Grants the creator read and
+   *  edit on a candidate that is in no demand (a master-pool entry). */
+  added_by?: string | null;
 }
 
 /**
@@ -195,10 +198,12 @@ export function candidateEditBlockReason(
  */
 export function canAccessCandidate(
   actor: CandidateActor,
-  ctx: { demands: CandidateDemandScope[] }
+  ctx: { demands: CandidateDemandScope[]; added_by?: string | null }
 ): boolean {
   if (!actor.role) return false;
   if (CANDIDATE_READ_ALL_ROLES.includes(actor.role)) return true;
+  // The person who added the candidate always sees it (AM master-pool entries).
+  if (actor.id && ctx.added_by && ctx.added_by === actor.id && CANDIDATE_WRITE_ROLES.includes(actor.role)) return true;
   return ctx.demands.some((d) => canAccessCandidateDemand(actor, d));
 }
 
@@ -211,13 +216,14 @@ export function canAccessCandidate(
  */
 export function canEditCandidate(
   actor: CandidateActor,
-  ctx: { demands: CandidateDemandScope[] }
+  ctx: { demands: CandidateDemandScope[]; added_by?: string | null }
 ): boolean {
   if (!actor.role) return false;
   if (ctx.demands.length === 0) {
-    // Master-pool candidate with no submissions. Only a write role gets here, and
-    // super_admin is the sole role allowed to own one (MASTER_POOL_CREATE_ROLES).
-    return actor.role === 'super_admin';
+    // Master-pool candidate with no submissions: Super Admin, or whoever added it (a Recruiter
+    // or AM — MASTER_POOL_CREATE_ROLES). Once it is in a demand, the demand rules below apply.
+    if (actor.role === 'super_admin') return true;
+    return !!actor.id && !!ctx.added_by && ctx.added_by === actor.id && MASTER_POOL_CREATE_ROLES.includes(actor.role);
   }
   return ctx.demands.some((d) => canEditCandidateDemand(actor, d));
 }
@@ -293,7 +299,7 @@ export async function loadCandidateAccessContext(candidateId: string): Promise<C
     });
   }
 
-  return { candidateId, demands: [...byDemand.values()] };
+  return { candidateId, demands: [...byDemand.values()], added_by: candidate.added_by };
 }
 
 /**
@@ -312,7 +318,7 @@ export async function loadCandidateAccessContexts(
     where: { id: { in: candidateIds } },
     select: { id: true, added_by: true },
   });
-  for (const c of candidates) out.set(c.id, { candidateId: c.id, demands: [] });
+  for (const c of candidates) out.set(c.id, { candidateId: c.id, demands: [], added_by: c.added_by });
 
   const submissions = await prisma.submissions.findMany({
     where: { candidate_id: { in: candidateIds } },
@@ -332,7 +338,7 @@ export async function loadCandidateAccessContexts(
   });
 
   const byCandidate = new Map<string, CandidateAccessContext>();
-  for (const c of candidates) byCandidate.set(c.id, { candidateId: c.id, demands: [] });
+  for (const c of candidates) byCandidate.set(c.id, { candidateId: c.id, demands: [], added_by: c.added_by });
 
   const globalAdder = new Map(candidates.map((c) => [c.id, c.added_by]));
   const rows = submissions.filter((s) => s.candidate_id && s.demands)
@@ -399,12 +405,12 @@ export function buildCandidateVisibilityCondition(
   // Account Manager: candidates on demands they own (created_by /
   // contact_profile_id) — the same predicate isDemandOwner uses.
   if (actor.role === 'account_manager') {
-    return Prisma.sql`EXISTS (
+    return Prisma.sql`(${a}.added_by = ${actor.id}::uuid OR EXISTS (
       SELECT 1 FROM submissions s
       JOIN demands d ON d.id = s.demand_id
       WHERE s.candidate_id = ${a}.id
         AND (d.created_by = ${actor.id}::uuid OR d.contact_profile_id = ${actor.id}::uuid)
-    )`;
+    ))`;
   }
 
   return Prisma.sql`FALSE`;
@@ -442,9 +448,11 @@ export async function buildCandidateScopeFilter(actor: CandidateActor): Promise<
   if (actor.role === 'account_manager') {
     if (!actor.id) return { id: { in: [] } };
     return {
-      submissions: {
-        some: { demands: { OR: [{ created_by: actor.id }, { contact_profile_id: actor.id }] } },
-      },
+      OR: [
+        { submissions: { some: { demands: { OR: [{ created_by: actor.id }, { contact_profile_id: actor.id }] } } } },
+        // Candidates the AM added to the database themselves (with or without a demand).
+        { added_by: actor.id },
+      ],
     };
   }
 

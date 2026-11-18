@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { requireAuth, requireRole, AuthError } from '@/lib/auth/session';
 import {
   CANDIDATE_WRITE_ROLES,
+  MASTER_POOL_CREATE_ROLES,
   buildCandidateScopeFilter,
   canAccessCandidate,
   canEditCandidate,
@@ -120,7 +121,10 @@ export async function GET(request: Request) {
       id: currentUser.userId,
     });
     if (scopeFilter) {
-      Object.assign(where, scopeFilter);
+      // AND-ed, never merged with Object.assign: the scope and the search can both use an `OR`
+      // key, and merging let one replace the other — an AM's search then skipped their scope.
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, scopeFilter];
     }
 
     // Archived candidates (soft-deleted) are hidden from every list and from the
@@ -289,29 +293,19 @@ export async function POST(request: Request) {
     }
     const values = parsed.data;
 
-    // Demand context is REQUIRED for `ta` and `account_manager`: without it they would
-    // mint a master-pool candidate belonging to no demand, which their demand-scoped read
-    // access would then hide from them. For those two roles, no requestId => 403.
-    //
-    // super_admin is unrestricted, so they may create either a pool candidate (no
-    // requestId) or a candidate attached to a demand — but when they DO pass a requestId
-    // (i.e. "Add New Candidate" from a demand's Pipeline) the candidate is linked to that
-    // demand in the same request, exactly as for the other scoped roles.
+    // A demand is optional. Without one the candidate goes into the database only (master pool),
+    // which Super Admin, Recruiters and Account Managers may all do (MASTER_POOL_CREATE_ROLES —
+    // client decision, Nov 2026); the creator keeps read/edit through candidates.added_by.
+    // With a requestId the candidate is also linked to that demand in the same request.
     //
     // The demand is loaded server-side from the requestId; the client cannot assert its
     // own assignment, and the check re-derives it from demand_ta_allocations.
     const requestId = typeof body?.requestId === 'string' ? body.requestId.trim() : '';
-    const isScopedRole = currentUser.role === 'ta' || currentUser.role === 'account_manager';
     let linkedDemand: Awaited<ReturnType<typeof loadDemandContext>> = null;
-    if (isScopedRole || requestId) {
-      if (isScopedRole && !requestId) {
-        return NextResponse.json(
-          { error: currentUser.role === 'ta'
-            ? 'Recruiters must create a candidate from a demand they are assigned to. Open a demand and add the candidate from its Pipeline.'
-            : 'Account Managers must create a candidate from a demand they own. Open one of your demands and add the candidate from its Pipeline.' },
-          { status: 403 },
-        );
-      }
+    if (!requestId && !MASTER_POOL_CREATE_ROLES.includes(currentUser.role)) {
+      return NextResponse.json({ error: 'You do not have permission to add candidates without a demand' }, { status: 403 });
+    }
+    if (requestId) {
       linkedDemand = await loadDemandContext(requestId);
       if (!linkedDemand) {
         return NextResponse.json({ error: 'Demand not found' }, { status: 404 });

@@ -39,11 +39,9 @@ interface CandidatesViewProps {
   onEdit: (c: Candidate) => void;
   onDeleteRequest: (c: Candidate) => void;
   /**
-   * Whether the current role may create a candidate in the global master pool from this
-   * page. Only super_admin: recruiters and AMs must create inside a demand they are
-   * assigned to / own, and they add candidates from that demand's Pipeline. Mirrors
-   * MASTER_POOL_CREATE_ROLES in lib/auth/candidatePermissions. UX only — POST
-   * /api/candidates is the actual boundary and returns 403 without a valid demand.
+   * Whether the current role may add candidates from this page (Super Admin, Recruiter, AM —
+   * MASTER_POOL_CREATE_ROLES). The Requirement is optional. UX only — POST /api/candidates is
+   * the actual boundary.
    */
   canCreateCandidates?: boolean;
   /** AM / Recruiter / Super Admin only — enables row checkboxes + "Bulk Delete" on this page. */

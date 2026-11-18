@@ -51,10 +51,12 @@ export const CANDIDATE_WRITE_ROLES = ['super_admin', 'ta', 'account_manager'];
 /**
  * Roles allowed to create a candidate in the GLOBAL master pool (no demand context).
  *
- * Only super_admin: `ta` and `account_manager` must create inside a demand they are assigned
- * to / own, otherwise they would mint a record their own demand-scoped read access hides.
+ * Client decision (Nov 2026): Recruiters and Account Managers may add candidates to the database
+ * without a demand, using the same Add Candidate form. A Recruiter reads every candidate anyway;
+ * an AM additionally reads and edits the candidates they added themselves (candidate.added_by,
+ * see canAccessCandidate / buildCandidateScopeFilter), so their own pool entries never vanish.
  */
-export const MASTER_POOL_CREATE_ROLES = ['super_admin'];
+export const MASTER_POOL_CREATE_ROLES = ['super_admin', 'ta', 'account_manager'];
 
 /* ─────────────────────────── Interviews ─────────────────────────── */
 
