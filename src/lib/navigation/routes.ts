@@ -72,6 +72,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'report_client_phases', href: '/reports/client-phases', label: 'Client-wise Demands', icon: 'fa-chart-column' },
       { id: 'report_interviews_today', href: '/reports/interviews-today', label: "Today's Interviews", icon: 'fa-user-clock' },
       { id: 'report_ready_to_join', href: '/reports/ready-to-join', label: 'Ready to Join', icon: 'fa-user-check' },
+      { id: 'report_candidate_aging', href: '/reports/candidate-aging', label: 'Candidate Aging', icon: 'fa-hourglass-half' },
+      { id: 'report_contribution', href: '/reports/contribution', label: 'Team Contribution', icon: 'fa-people-group' },
     ],
   },
   {

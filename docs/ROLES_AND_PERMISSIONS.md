@@ -290,6 +290,19 @@ to who may edit the client.
 
 ## 2026-11 update — client feedback round
 
+- **Review batches 2–5** (Nov 2026):
+  - Full PAN (`GET /api/candidates/[id]/pan`): only someone who may edit the candidate
+    (`canEditCandidate`). Everyone else sees the last 4 characters.
+  - Candidate file upload: `canWriteCandidates`.
+  - Call Log edit / Demand Match → Sourcing: `canLogDemandCall` (same as logging a call).
+  - Sourcing Submit: `canSubmitSourcedProfile` (pipeline team, or the recruiter who uploaded it).
+    Approve / Reject: `canReviewSourcedProfile` (Super Admin, the demand's AM, its SPOC). Recruiters
+    can no longer move a profile from Sourcing into Shortlist through the status route.
+  - Draft demands: visible to their creator and Super Admin only (`canViewDemand`, list scopes).
+  - Team Contribution report: Super Admin sees everyone (`canSeeEveryonesContribution`); anyone
+    else sees only their own. Candidate Aging report: dashboard scope.
+  - Notification bell: Account Managers now get it (profiles are submitted to them).
+
 - **Account Manager on a demand** (review batch 1): only the Delivery Head (`super_admin`) may set
   or change it — `canReassignDemandAccountManager`, used by `POST /api/demands/[requestId]/assign`
   (other actors' account_manager entries are dropped) and to show the picker on the Assign tab.

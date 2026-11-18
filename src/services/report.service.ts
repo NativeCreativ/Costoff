@@ -99,3 +99,45 @@ export async function getReadyToJoinReport(skillGroup: string | null, location: 
   const { data } = await api.get('/reports/ready-to-join', { params });
   return data;
 }
+
+/* ─────────────── Contribution (review batch 5) ─────────────── */
+
+export type ContributionCounts = Record<import('@/lib/reports/contribution').ContributionMetric, number>;
+
+export type ContributionReport =
+  | { level: 'user'; from: string; to: string; can_see_all: boolean; rows: { user_id: string; name: string; role: string; counts: ContributionCounts }[] }
+  | {
+      level: 'demand';
+      from: string;
+      to: string;
+      can_see_all: boolean;
+      user: { id: string; name: string; role: string | null };
+      rows: { demand_id: string; request_id: string; job_title: string | null; client_name: string | null; counts: ContributionCounts }[];
+    };
+
+export async function getContributionReport(from: string, to: string, userId: string | null): Promise<ContributionReport> {
+  const params: Record<string, string> = { from, to };
+  if (userId) params.userId = userId;
+  const { data } = await api.get('/reports/contribution', { params });
+  return data;
+}
+
+/* ─────────────── Candidate aging (review batch 5) ─────────────── */
+
+export interface CandidateAgingRow {
+  submission_id: string;
+  candidate_id: string;
+  candidate_name: string;
+  request_id: string;
+  job_title: string | null;
+  client_name: string | null;
+  status: string;
+  current_phase: string | null;
+  days_in_current_phase: number;
+  days_by_phase: Record<string, number>;
+}
+
+export async function getCandidateAgingReport(phase: string | null): Promise<{ rows: CandidateAgingRow[]; truncated: boolean }> {
+  const { data } = await api.get('/reports/candidate-aging', { params: phase ? { phase } : {} });
+  return { rows: data.rows ?? [], truncated: !!data.truncated };
+}

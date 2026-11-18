@@ -592,6 +592,31 @@ Migration `20261112120000_client_feedback_round`.
   `max_days_open`, `red_flag_demands` per client.
 - `DemandOverviewCard` is no longer rendered (the "All details" section was removed).
 
+### App review batches 2–5 (Nov 2026) — migrations `20261118120000_candidate_profile_fields`, `20261118140000_call_log_review_drafts`, `20261118160000_skill_categories_seed`
+
+- **PAN**: `candidates.pan_encrypted` (AES-256-GCM, `src/lib/candidates/panCrypto.ts`, key =
+  `PAN_ENCRYPTION_KEY` or derived from `SESSION_SECRET` — changing it makes saved PANs unreadable)
+  + `pan_last4`. The Prisma client is created with `omit: { candidates: { pan_encrypted: true } }`
+  (`src/lib/db/prisma.ts`), so no query returns the ciphertext unless it selects it explicitly;
+  only `GET /api/candidates/[id]/pan` does.
+- **Candidate files**: `POST /api/uploads/candidate-file` (kind resume | photo | rtr) → uploadStorage
+  key `candidates/<kind>/<uuid>/<name>`; candidate writes accept only those urls (`isCandidateFileUrl`).
+- **Call Log**: outcome `demand_match | not_fit` (was fit), `skill_group_id`, `updated_by/at`.
+  A Demand Match no longer attaches by itself: `POST …/call-logs/[callId]/add-to-sourcing` after the
+  candidate form is saved. `PUT …/call-logs/[callId]` edits a call.
+- **Sourcing review**: `submissions.review_state` ('rejected'), `review_remark`, `reviewed_by/at`,
+  `submitted_for_review_at`. `POST …/candidates/[dcId]/review` (submit | submit_as_active | approve |
+  reject) writes a status_change event and notifications (types `profile_submitted`,
+  `profile_reviewed`). The status PATCH refuses sourcing → shortlisted_internal for non-reviewers.
+- **Drafts**: `demands.is_draft`; `buildDemandVisibilityCondition` / `canViewDemand` hide drafts from
+  everyone but the creator and Super Admin; `buildDashboardDemandCondition` and
+  `buildDemandUploadableCondition` always exclude drafts. PUT `publish: true` publishes and notifies.
+- **Aging**: `computePhaseAging` (`src/lib/candidates/phaseAging.ts`) from submission status events;
+  the lifecycle API adds `phase_aging` to each submission. Reports: `/api/reports/candidate-aging`,
+  `/api/reports/contribution` (`src/lib/reports/contribution.ts`).
+- **Log stamps**: `src/lib/logStamp.ts`; interview PATCH `log_comment` appends a stamped line to
+  `interviews.feedback` server-side.
+
 ## 10. Key entry points
 
 | I need to… | Open this first |

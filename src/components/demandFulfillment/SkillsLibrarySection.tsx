@@ -21,6 +21,7 @@ import {
   useToggleSkillMutation,
 } from '@/queries/settings/useSkillsLibraryMutations';
 import type { SkillCategory } from '@/components/types';
+import { SkillCategoryPicker } from '@/components/masterData/SkillCategoryPicker';
 
 function errorMessage(err: unknown, fallback: string): string {
   return isAxiosError(err) ? err.response?.data?.error || fallback : fallback;
@@ -357,6 +358,7 @@ export function SkillsLibrarySection() {
                   <Plus className="h-3.5 w-3.5" /> Add Skill
                 </Button>
               )}
+              <SkillCategoryPicker group={selectedCategory} groups={libraryQuery.data ?? []} />
             </>
           )}
         </div>

@@ -225,6 +225,8 @@ export interface UpdateInterviewPayload {
   end_time?: string;
   meeting_link?: string;
   remark?: string;
+  /** Appended to the interview log with a server-side date/time/name stamp. */
+  log_comment?: string;
 }
 
 export async function updateInterview(interviewId: string, payload: UpdateInterviewPayload): Promise<DemandInterview> {

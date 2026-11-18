@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { getClientPhasesReport, getReadyToJoinReport, getTodaysInterviewsReport } from '@/services/report.service';
+import { getCandidateAgingReport, getClientPhasesReport, getContributionReport, getReadyToJoinReport, getTodaysInterviewsReport } from '@/services/report.service';
 
 /** Reports are read-only snapshots; a short stale time keeps drill-down back/forth instant. */
 const STALE_TIME_MS = 30 * 1000;
@@ -28,6 +28,24 @@ export function useReadyToJoinReport(skillGroup: string | null, location: string
   return useQuery({
     queryKey: queryKeys.reportReadyToJoin(skillGroup, location),
     queryFn: () => getReadyToJoinReport(skillGroup, location),
+    placeholderData: keepPreviousData,
+    staleTime: STALE_TIME_MS,
+  });
+}
+
+export function useContributionReport(from: string, to: string, userId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.reportContribution(from, to, userId),
+    queryFn: () => getContributionReport(from, to, userId),
+    placeholderData: keepPreviousData,
+    staleTime: STALE_TIME_MS,
+  });
+}
+
+export function useCandidateAgingReport(phase: string | null) {
+  return useQuery({
+    queryKey: queryKeys.reportCandidateAging(phase),
+    queryFn: () => getCandidateAgingReport(phase),
     placeholderData: keepPreviousData,
     staleTime: STALE_TIME_MS,
   });

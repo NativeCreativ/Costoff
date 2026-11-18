@@ -57,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
       return NextResponse.json({ error: 'You do not have permission to view this demand' }, { status: 403 });
     }
 
-    const [changes, assignments, statuses, submissionEvents] = await Promise.all([
+    const [changes, assignments, statuses, submissionEvents, conversations] = await Promise.all([
       prisma.demand_change_events.findMany({
         where: { demand_id: demand.id },
         orderBy: { created_at: 'desc' },
@@ -84,6 +84,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
           submissions: { select: { candidates: { select: { full_name: true } } } },
         },
       }),
+      // Review batch 5: conversations with this demand's candidates appear in its Change Log.
+      prisma.candidate_conversations.findMany({
+        where: {
+          OR: [
+            { demand_id: demand.id },
+            { demand_id: null, candidates: { submissions: { some: { demand_id: demand.id } } } },
+          ],
+        },
+        orderBy: { created_at: 'desc' },
+        take: CHANGE_LOG_LIMIT,
+        include: { profiles: { select: { full_name: true } }, candidates: { select: { full_name: true } } },
+      }),
     ]);
 
     // Assignment rows store ids only; resolve people and client SPOCs (and the actors) in one go.
@@ -100,6 +112,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
     ]);
 
     const entries: ChangeLogEntry[] = [
+      ...conversations.map((row) => ({
+        id: `v-${row.id}`,
+        at: row.created_at.toISOString(),
+        scope: 'candidate' as const,
+        actor: row.profiles?.full_name ?? null,
+        subject: row.candidates?.full_name ?? null,
+        field: `Conversation (${row.channel})`,
+        old_value: null,
+        new_value: row.content,
+      })),
       ...changes.map((row) => ({
         id: `c-${row.id}`,
         at: row.created_at.toISOString(),

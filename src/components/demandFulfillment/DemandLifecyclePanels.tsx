@@ -41,6 +41,8 @@ interface SubmissionRow {
   review_state?: string | null;
   review_remark?: string | null;
   submitted_for_review_at?: string | null;
+  /** Days per phase (review batch 5, computePhaseAging). */
+  phase_aging?: { current_phase: string | null; days_in_current_phase: number | null; days_by_phase: Record<string, number> } | null;
   candidates?: { full_name?: string; email?: string | null } | null;
 }
 
@@ -458,6 +460,19 @@ function CandidatePhasePanel({
                   {' · '}{row.sourcing_type === 'backup' ? 'Backup' : 'Active'}
                   {interview ? ` · ${interview.interview_type || '—'} · ${interview.mode || '—'} · ${interview.interview_location || '—'}` : ''}
                 </div>
+                {row.phase_aging?.days_in_current_phase != null && (
+                  <div className="mt-0.5 text-[0.72rem] text-[#475569]">
+                    <span className={row.phase_aging.days_in_current_phase > 7 ? 'font-semibold text-[#b45309]' : ''}>
+                      {row.phase_aging.days_in_current_phase} day(s) in this phase
+                    </span>
+                    {Object.keys(row.phase_aging.days_by_phase).length > 1 && (
+                      <span className="text-[#94a3b8]">
+                        {' · '}
+                        {Object.entries(row.phase_aging.days_by_phase).map(([p, d]) => `${p[0].toUpperCase()}${p.slice(1)} ${d}d`).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {phase === 'sourcing' && row.review_state === 'rejected' && row.current_status === 'sourced' && row.review_remark && (
                   <div className="mt-1 rounded bg-[#fef2f2] px-2 py-1 text-[0.74rem] text-[#b91c1c]">Reason: {row.review_remark}</div>
                 )}
@@ -589,7 +604,7 @@ function CandidatePhasePanel({
                         interview_location: local.location as 'Teams' | 'Direct_Call',
                         result: local.status === 'Completed' ? (local.result as 'pass' | 'fail' | 'on_hold') : undefined,
                         remark: local.comment || undefined,
-                        feedback: [interview.feedback, local.comment].filter(Boolean).join('\n') || undefined,
+                        log_comment: local.comment || undefined,
                       },
                     })}
                   >

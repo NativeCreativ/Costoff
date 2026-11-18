@@ -157,6 +157,9 @@ export const updateInterviewSchema = z.object({
   duration_minutes: z.number().int().positive().nullable().optional(),
   meeting_link: z.string().trim().url().optional().or(z.literal('')),
   remark: remarkField,
+  /** Review batch 5: one comment appended to the interview log (feedback), stamped by the
+   *  server with the date, time and the author's name. */
+  log_comment: z.string().trim().max(2000).optional(),
 }).refine(
   (v) => !v.scheduled_time || !v.end_time || v.end_time > v.scheduled_time,
   { message: 'End time must be after the start time', path: ['end_time'] }

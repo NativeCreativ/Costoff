@@ -1,4 +1,5 @@
 import { withoutPanCiphertext } from '@/lib/candidates/panCrypto';
+import { computePhaseAging } from '@/lib/candidates/phaseAging';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
@@ -74,8 +75,20 @@ export async function GET(
           include: { candidates: true },
           orderBy: { created_at: 'desc' },
         });
+        // Candidate aging per phase (review batch 5): one query for every entry's status events.
+        const statusEvents = subs.length
+          ? await prisma.submission_events.findMany({
+              where: { submission_id: { in: subs.map((s) => s.id) }, event_type: 'status_change' },
+              select: { submission_id: true, to_status: true, created_at: true },
+            })
+          : [];
         submissions = subs.map(s => ({
           ...s,
+          phase_aging: computePhaseAging({
+            created_at: s.created_at ?? new Date(),
+            current_status: s.current_status,
+            events: statusEvents.filter((e) => e.submission_id === s.id),
+          }),
           candidates: s.candidates
             ? {
                 // The PAN ciphertext never leaves the server.

@@ -51,6 +51,19 @@ export function SkillsManagementSection() {
   );
   const classificationName = (id?: string | null) =>
     classifications.data?.find((row) => row.id === id)?.name ?? '—';
+  // Review batch 5: skills listed under their Skill Category (Technical, Domain, …).
+  const groupedByCategory = useMemo(() => {
+    const order = (classifications.data ?? []).map((c) => c.id);
+    const groups = new Map<string, typeof skills>();
+    for (const skill of skills) {
+      const key = skill.classification_id && order.includes(skill.classification_id) ? skill.classification_id : '';
+      groups.set(key, [...(groups.get(key) ?? []), skill]);
+    }
+    return [...order, '']
+      .filter((key) => groups.has(key))
+      .map((key) => ({ heading: key ? classificationName(key) : 'No skill category', rows: groups.get(key)! }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skills, classifications.data]);
 
   const save = () => {
     if (!draft) return;
@@ -91,7 +104,9 @@ export function SkillsManagementSection() {
         </p>
         {skills.length === 0 && <p className="mb-3 text-[0.8rem] text-[#94a3b8]">No skills yet. Add a skill group first, then a skill.</p>}
         <div className="flex flex-col gap-1.5">
-          {skills.map((skill) => (
+          {groupedByCategory.map(({ heading, rows }) => [
+            <div key={'h-' + heading} className="mt-2 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#2563eb] first:mt-0">{heading} · {rows.length}</div>,
+            ...rows.map((skill) => (
             <div key={skill.id} className={`flex flex-wrap items-center gap-2 rounded-md border border-[#e2e8f0] px-3 py-2 ${skill.is_active ? '' : 'opacity-60'}`}>
               <span className="min-w-[140px] flex-1 text-[0.85rem] font-medium text-[#0f172a]">{skill.name}</span>
               <span className="text-[0.75rem] text-[#64748b]">{skill.groupName}</span>
@@ -111,7 +126,8 @@ export function SkillsManagementSection() {
                 onToggle={() => toggleSkill.mutate({ id: skill.id, isActive: !skill.is_active })}
               />
             </div>
-          ))}
+          )),
+          ])}
         </div>
         {draft ? (
           <div className="mt-3 grid grid-cols-1 gap-2 rounded-md border border-[#bfdbfe] bg-[#eff6ff] p-3 sm:grid-cols-2">

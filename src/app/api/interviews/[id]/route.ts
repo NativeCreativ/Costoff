@@ -1,3 +1,4 @@
+import { appendStampedLine } from '@/lib/logStamp';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
@@ -125,7 +126,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     const {
       status, mode, feedback, result, round_id, scheduled_date, scheduled_time, end_time, duration_minutes,
-      meeting_link, remark, interview_type, interview_location,
+      meeting_link, remark, interview_type, interview_location, log_comment,
     } = parsed.data;
 
     let matchedRound: { id: string; name: string; mode?: string | null; round_order: number } | undefined;
@@ -201,6 +202,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (duration_minutes !== undefined) updateData.duration_minutes = duration_minutes;
     if (meeting_link !== undefined) updateData.meeting_link = meeting_link || null;
     if (remark !== undefined) updateData.remark = remark || null;
+    if (log_comment) {
+      // Interview log: each comment is a new line stamped with when and who (review batch 5).
+      const author = await prisma.profiles.findUnique({ where: { id: currentUser.userId }, select: { full_name: true } });
+      const current = await prisma.interviews.findUnique({ where: { id: interview.id }, select: { feedback: true } });
+      updateData.feedback = appendStampedLine(current?.feedback, log_comment, author?.full_name);
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       const updated_ = await tx.interviews.update({
