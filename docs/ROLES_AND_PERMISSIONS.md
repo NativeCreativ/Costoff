@@ -290,6 +290,10 @@ to who may edit the client.
 
 ## 2026-11 update — client feedback round
 
+- **Account Manager on a demand** (review batch 1): only the Delivery Head (`super_admin`) may set
+  or change it — `canReassignDemandAccountManager`, used by `POST /api/demands/[requestId]/assign`
+  (other actors' account_manager entries are dropped) and to show the picker on the Assign tab.
+
 These rules supersede the `ta` rows above where they differ.
 
 - **Recruiter (`ta`) demand visibility.** A Recruiter can view **every** demand (list, detail

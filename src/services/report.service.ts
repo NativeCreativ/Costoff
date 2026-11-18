@@ -6,6 +6,10 @@ export interface ClientPhaseRow {
   client_name: string;
   demands: number;
   positions: number;
+  /** Demand aging: average and oldest days open across the client's demands, and how many are past the red-flag limit. */
+  avg_days_open: number;
+  max_days_open: number;
+  red_flag_demands: number;
   counts: PhaseCounts;
   percents: Record<ReportPhase, number>;
 }

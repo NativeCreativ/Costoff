@@ -30,6 +30,8 @@ export interface Demand {
   engagement_type?: string | null;
   client_demand_id?: string | null;
   intermediary_partner?: string | null;
+  shift_timings?: string | null;
+  comments?: string | null;
   customer_jd?: string | null;
   /** Uploaded Customer JD file (url under /uploads/jd/) and its original name. */
   customer_jd_file_url?: string | null;

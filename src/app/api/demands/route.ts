@@ -607,6 +607,8 @@ export async function POST(request: Request) {
             engagement_type: values.engagement_type || null,
             client_demand_id: values.client_demand_id?.trim() || null,
             intermediary_partner: values.intermediary_partner?.trim() || null,
+            shift_timings: values.shift_timings?.trim() || null,
+            comments: values.comments?.trim() || null,
             customer_jd: values.customer_jd?.trim() || null,
             customer_jd_file_url: values.customer_jd_file_url || null,
             customer_jd_file_name: values.customer_jd_file_url ? values.customer_jd_file_name?.trim() || null : null,
@@ -788,6 +790,8 @@ export async function PUT(request: Request) {
         engagement_type: true,
         client_demand_id: true,
         intermediary_partner: true,
+        shift_timings: true,
+        comments: true,
         technology_stack: true,
         experience_levels: true,
         work_mode: true,
@@ -1008,6 +1012,8 @@ export async function PUT(request: Request) {
     if (values.engagement_type !== undefined) updateData.engagement_type = values.engagement_type || null;
     if (values.client_demand_id !== undefined) updateData.client_demand_id = values.client_demand_id?.trim() || null;
     if (values.intermediary_partner !== undefined) updateData.intermediary_partner = values.intermediary_partner?.trim() || null;
+    if (values.shift_timings !== undefined) updateData.shift_timings = values.shift_timings?.trim() || null;
+    if (values.comments !== undefined) updateData.comments = values.comments?.trim() || null;
     if (values.customer_jd !== undefined) updateData.customer_jd = values.customer_jd?.trim() || null;
     if (values.customer_jd_file_url !== undefined) {
       updateData.customer_jd_file_url = values.customer_jd_file_url || null;

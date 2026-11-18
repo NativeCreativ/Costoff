@@ -212,7 +212,7 @@ export function DemandOverviewCard({ demand, assignments, onboardings, canManage
               className="mt-3 inline-flex items-center gap-1.5 text-[0.8rem] font-semibold text-[#2563eb] hover:underline"
             >
               <FileText className="h-3.5 w-3.5" />
-              Customer JD: {demand.customer_jd_file_name || 'attached file'}
+              Client JD: {demand.customer_jd_file_name || 'attached file'}
             </a>
           )}
         </div>

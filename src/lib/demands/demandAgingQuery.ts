@@ -1,7 +1,8 @@
 import { Prisma } from '@/generated/prisma/client';
 
 /** Red-flag threshold, ported verbatim from the removed `v_demands_with_aging` view. */
-export const DEMAND_RED_FLAG_DAYS = 30;
+import { DEMAND_RED_FLAG_DAYS } from '@/lib/demandFulfillment/constants';
+export { DEMAND_RED_FLAG_DAYS };
 
 /** Approaching-red-flag threshold (days). A demand is "approaching" when
  *  days_open >= DEMAND_APPROACHING_DAYS and <= DEMAND_RED_FLAG_DAYS. */
@@ -17,7 +18,7 @@ export const DEMANDS_WITH_AGING_BASE = Prisma.sql`
     d.updated_by, d.contact_profile_id, d.spoc_profile_id, d.company_id,
     d.cloned_from_demand_id, d.cloned_at, d.cloned_by,
     d.skills_category_id, d.end_client_id, d.demand_type,
-    d.engagement_type, d.client_demand_id, d.intermediary_partner, d.customer_jd, d.client_spoc_ids,
+    d.engagement_type, d.client_demand_id, d.intermediary_partner, d.shift_timings, d.comments, d.customer_jd, d.client_spoc_ids,
     d.work_modes, d.customer_jd_file_url, d.customer_jd_file_name,
     d.total_experience, d.relevant_experience, d.certifications,
     src.request_id AS cloned_from_request_id,

@@ -38,7 +38,7 @@ export function TaskLogView() {
   // Only the Delivery Head gets the person filter (and may read the user list).
   const usersQuery = useUsersQuery({ pageSize: 100 }, { enabled: canViewAll });
   const rows = query.data?.data ?? [];
-  const columns = canViewAll ? 6 : 5;
+  const columns = canViewAll ? 8 : 7;
   const resetPage = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
 
   return (
@@ -73,6 +73,8 @@ export function TaskLogView() {
               <th className="px-3 py-2">Dates</th>
               {canViewAll && <th className="px-3 py-2">Person</th>}
               <th className="px-3 py-2">Task</th>
+              <th className="px-3 py-2">Assigned by</th>
+              <th className="px-3 py-2 text-right">Hours</th>
               <th className="px-3 py-2">Details</th>
               <th className="px-3 py-2">Remarks</th>
               <th className="px-3 py-2">Actions</th>
@@ -97,6 +99,8 @@ export function TaskLogView() {
                   </td>
                   {canViewAll && <td className="whitespace-nowrap px-3 py-2 text-[#334155]">{row.user_name || '—'}</td>}
                   <td className="px-3 py-2 font-semibold text-[#0f172a]">{row.task_name}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-[#475569]">{row.assigned_by || '—'}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-[#475569]">{row.hours ?? '—'}</td>
                   <td className="max-w-[320px] px-3 py-2 text-[#475569]">
                     {row.details ? <MoreLessText text={row.details} wordLimit={25} charLimit={180} /> : '—'}
                   </td>

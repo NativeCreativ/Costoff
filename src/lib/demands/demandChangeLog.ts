@@ -12,13 +12,15 @@ export type ChangeLogValue = string | number | boolean | string[] | null | undef
 export const DEMAND_CHANGE_FIELD_LABELS: Record<string, string> = {
   job_title: 'Job Title',
   skill_description: 'Job Summary',
-  customer_jd: 'Customer JD (text)',
-  customer_jd_file_name: 'Customer JD (file)',
+  customer_jd: 'Client JD (text)',
+  customer_jd_file_name: 'Client JD (file)',
   role_category: 'Demand Category',
   demand_type: 'Demand Type',
   engagement_type: 'Engagement',
   client_demand_id: 'Client Demand Id',
   intermediary_partner: 'Intermediary Partner',
+  shift_timings: 'Shift Timings',
+  comments: 'Comments',
   end_client: 'End Client',
   skill_group: 'Skill Group',
   required_skills: 'Required Skills',
@@ -127,6 +129,8 @@ export interface DemandChangeSource {
   engagement_type?: string | null;
   client_demand_id?: string | null;
   intermediary_partner?: string | null;
+  shift_timings?: string | null;
+  comments?: string | null;
   technology_stack?: string[] | null;
   experience_levels?: string[] | null;
   total_experience?: string | null;
@@ -159,6 +163,8 @@ export function demandChangeSnapshot(d: DemandChangeSource): Record<string, Chan
     engagement_type: d.engagement_type,
     client_demand_id: d.client_demand_id,
     intermediary_partner: d.intermediary_partner,
+    shift_timings: d.shift_timings,
+    comments: d.comments,
     end_client: d.end_clients?.name ?? null,
     skill_group: d.skill_categories?.name ?? null,
     required_skills: d.technology_stack ?? [],
@@ -196,6 +202,8 @@ export function sentChangeFields(
     ['engagement_type', has('engagement_type')],
     ['client_demand_id', has('client_demand_id')],
     ['intermediary_partner', has('intermediary_partner')],
+    ['shift_timings', has('shift_timings')],
+    ['comments', has('comments')],
     ['end_client', has('end_client_id')],
     ['skill_group', has('skills_category_id')],
     ['required_skills', sent('required_skills')],

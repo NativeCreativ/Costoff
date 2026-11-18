@@ -5,8 +5,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
-import { TagInput } from '@/components/ui/TagInput';
 import { SkillsSelector } from '@/components/ui/SkillsSelector';
+import { LocationMultiSelect } from '@/components/masterData/LocationMultiSelect';
+import { useNamedMasterQuery } from '@/queries/masterData/useMasterData';
 import { Button } from '@/components/ui/button';
 import { candidateSchema } from './candidate.schema';
 import { candidateUrgency } from '@/lib/candidates/candidateUrgency';
@@ -34,6 +35,7 @@ function SectionCard({ label, children }: { label: string; children: ReactNode }
 }
 
 export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, pendingLabel, isSubmitting, idFieldsReadOnlyPlaceholders, extraContent }: CandidateFormProps) {
+  const masterLocations = useNamedMasterQuery('locations');
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<CandidateFormState>({
     resolver: zodResolver(candidateSchema),
     defaultValues,
@@ -65,12 +67,22 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
 
       <SectionCard label="Location">
         <div className="grid grid-cols-2 gap-2.5">
-          <FormField label="Current Location" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. Bangalore' : undefined} register={register('current_location')} error={errors.current_location?.message} />
+          {/* Both pick from the Locations master (review, Nov 2026). Current Location suggests
+              master values but still accepts older free-text entries already saved. */}
+          <div>
+            <FormField label="Current Location" placeholder="Start typing to pick a location" listId="candidate-master-locations" register={register('current_location')} error={errors.current_location?.message} />
+            <datalist id="candidate-master-locations">
+              {(masterLocations.data ?? []).map((location) => <option key={location.id} value={location.name} />)}
+            </datalist>
+          </div>
           <Controller
             name="preferred_locations"
             control={control}
             render={({ field }) => (
-              <TagInput label="Preferred Location" placeholder="Type a location and press Enter" value={field.value} onChange={field.onChange} error={errors.preferred_locations?.message} />
+              <div>
+                <LocationMultiSelect label="Preferred Location" value={field.value} onChange={field.onChange} />
+                {errors.preferred_locations?.message && <p className="mt-1 text-[0.72rem] text-[#dc2626]">{errors.preferred_locations.message}</p>}
+              </div>
             )}
           />
         </div>
@@ -88,7 +100,7 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
             control={control}
             render={({ field }) => (
               <SkillsSelector
-                label="Key Skills"
+                label="Skill Group"
                 value={field.value}
                 onChange={field.onChange}
                 error={errors.skills?.message}

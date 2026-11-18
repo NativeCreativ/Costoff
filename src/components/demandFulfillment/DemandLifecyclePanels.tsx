@@ -17,6 +17,7 @@ import { useDemandCandidatesQuery } from '@/queries/demandFulfillment/useDemandF
 import { UserPlus, UserSearch } from 'lucide-react';
 import { useChangeSubmissionStatusMutation, useScheduleInterviewMutation, useUpdateInterviewMutation } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
 import { useSpocProfilesQuery } from '@/queries/demands/useSpocProfilesQuery';
+import { useAmProfilesQuery } from '@/queries/demands/useAmProfilesQuery';
 import { useRecruiterProfilesQuery } from '@/queries/demands/useRecruiterProfilesQuery';
 import { useUpdateDemandMutation } from '@/queries/demands/useDemandMutations';
 import { assignDemand, closeDemand, updateSubmissionSourcingType } from '@/services/demandFulfillment.service';
@@ -63,6 +64,7 @@ export function DemandLifecyclePanels({
   clientSpocs,
   assignmentEvents,
   canEditDemandFields,
+  canAssignAccountManager = false,
   canManagePipeline,
   canUploadProfiles,
   canClose,
@@ -76,6 +78,8 @@ export function DemandLifecyclePanels({
   clientSpocs: ClientSpoc[];
   assignmentEvents: { id: string; category: string; action: string; subject_id?: string | null; subject_label?: string | null; created_at?: string }[];
   canEditDemandFields: boolean;
+  /** Delivery Head only: shows the Account Manager picker on the Assign tab. */
+  canAssignAccountManager?: boolean;
   canManagePipeline: boolean;
   /** May add profiles (Sourced) — wider than canManagePipeline for unassigned Recruiters. */
   canUploadProfiles: boolean;
@@ -93,6 +97,7 @@ export function DemandLifecyclePanels({
         clientSpocs={clientSpocs}
         events={assignmentEvents}
         canEdit={canEditDemandFields}
+        canAssignAccountManager={canAssignAccountManager}
       />
     );
   }
@@ -169,31 +174,38 @@ function AssignPanel({
   clientSpocs,
   events,
   canEdit,
+  canAssignAccountManager,
 }: {
   requestId: string;
   demand: Demand;
   clientSpocs: ClientSpoc[];
   events: { id: string; category: string; action: string; subject_id?: string | null; subject_label?: string | null; created_at?: string }[];
   canEdit: boolean;
+  canAssignAccountManager: boolean;
 }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const spocProfiles = useSpocProfilesQuery();
   const recruiterProfiles = useRecruiterProfilesQuery();
+  const amProfiles = useAmProfilesQuery();
+  const [amId, setAmId] = useState(demand.contact_profile_id || '');
   const [spocId, setSpocId] = useState(demand.spoc_profile_id || '');
   const [recruiterIds, setRecruiterIds] = useState<string[]>(demand.recruiter_ids ?? []);
   const [clientSpocIds, setClientSpocIds] = useState<string[]>(demand.client_spoc_ids ?? []);
 
+  const amOptions = amProfiles.data.map((profile) => ({ id: profile.id, name: profile.full_name, email: profile.email, role: 'AM' }));
   const spocOptions = spocProfiles.data.map((profile) => ({ id: profile.id, name: profile.full_name, email: profile.email, role: 'SPOC' }));
   const recruiterOptions = recruiterProfiles.data.map((profile) => ({ id: profile.id, name: profile.full_name, email: profile.email, role: 'TA' }));
 
   const save = useMutation({
     mutationFn: () => {
-      const assignments: { user_id: string; role_in_demand: 'spoc' | 'recruiter' }[] = [
+      const assignments: { user_id: string; role_in_demand: 'account_manager' | 'spoc' | 'recruiter' }[] = [
+        ...(canAssignAccountManager && amId && amId !== demand.contact_profile_id ? [{ user_id: amId, role_in_demand: 'account_manager' as const }] : []),
         ...(spocId ? [{ user_id: spocId, role_in_demand: 'spoc' as const }] : []),
         ...recruiterIds.map((id) => ({ user_id: id, role_in_demand: 'recruiter' as const })),
       ];
-      const clearRoles: ('spoc' | 'recruiter')[] = [
+      const clearRoles: ('account_manager' | 'spoc' | 'recruiter')[] = [
+        ...(canAssignAccountManager && !amId && demand.contact_profile_id ? ['account_manager' as const] : []),
         ...(!spocId && demand.spoc_profile_id ? ['spoc' as const] : []),
         ...(recruiterIds.length === 0 && (demand.recruiter_ids?.length ?? 0) > 0 ? ['recruiter' as const] : []),
       ];
@@ -210,8 +222,23 @@ function AssignPanel({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[0.8rem] text-[#64748b]">
-        Search by name to assign or clear Costaff SPOCs and recruiters, and tick client SPOCs. Clearing a person removes them. Each change is written to the assignment log.
+        Search by name to assign or clear {canAssignAccountManager ? 'the Account Manager, ' : ''}Costaff SPOCs and recruiters, and tick client SPOCs. Clearing a person removes them. Each change is written to the assignment log.
       </p>
+      {canAssignAccountManager ? (
+        <UserSelect
+          mode="single"
+          label="Account Manager"
+          placeholder="Search Account Manager…"
+          options={amOptions}
+          value={amId}
+          onChange={setAmId}
+          disabled={!canEdit}
+          isLoading={amProfiles.isLoading}
+          selectedLabel={demand.am_name || undefined}
+        />
+      ) : demand.am_name ? (
+        <div className="text-[0.82rem]"><span className="font-semibold text-[#475569]">Account Manager:</span> {demand.am_name}</div>
+      ) : null}
       <UserSelect
         mode="single"
         label="Costaff SPOC"

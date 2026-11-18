@@ -229,8 +229,8 @@ export function CompanyFormModal({
       title={mode === 'create' ? 'Add New Client' : `Edit Client — ${editingCompany?.name ?? ''}`}
       subtitle={
         mode === 'create'
-          ? 'Client name, contact details, SPOCs and recommended interview rounds.'
-          : 'Update the client, its SPOCs and its recommended interview rounds.'
+          ? 'Client name, contact details, SPOCs and the interview template.'
+          : 'Update the client, its SPOCs and its interview template.'
       }
       size="large"
       onClose={onClose}
@@ -382,7 +382,7 @@ export function CompanyViewModal({ company, onClose }: { company: Company; onClo
 
             <div className="rounded-[10px] border border-[#e2e8f0] bg-white p-4">
               <div className="mb-1.5 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#2563eb]">
-                Interview Rounds
+                Interview Template
               </div>
               <p className="mb-3 text-[0.78rem] text-[#94a3b8]">
                 This company&apos;s interview rounds. New demands inherit these unless they configure

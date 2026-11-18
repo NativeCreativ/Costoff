@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
-import { canManageDemandAssignments } from '@/lib/auth/demandFulfillmentPermissions';
+import { canManageDemandAssignments, canReassignDemandAccountManager } from '@/lib/auth/demandFulfillmentPermissions';
 import { DEMAND_ASSIGNMENT_ROLE_TO_PROFILE_ROLES } from '@/lib/demandFulfillment/constants';
 import { demandAssignSchema } from '@/components/demandFulfillment/demandFulfillment.schema';
 import { loadDemandContext } from '@/lib/demandFulfillment/loadDemandContext';
@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ req
     // ownership is fixed once set at creation and cannot be re-asserted or changed by
     // them here, even to themselves. Drop any account_manager entry for an AM actor
     // rather than rejecting, since the frontend already hides this selector for them.
-    const assignments = currentUser.role === 'account_manager'
+    const assignments = !canReassignDemandAccountManager(currentUser.role)
       ? parsed.data.assignments.filter((a) => a.role_in_demand !== 'account_manager')
       : parsed.data.assignments;
 

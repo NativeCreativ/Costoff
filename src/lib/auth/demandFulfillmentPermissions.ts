@@ -51,6 +51,12 @@ export function canChangeDemandStatus(actor: FulfillmentActor, demand: DemandOwn
   return false;
 }
 
+/** Who may set or change a demand's Account Manager: only the Delivery Head (super_admin).
+ *  An AM's own ownership is fixed; they can still assign the SPOC and recruiters. */
+export function canReassignDemandAccountManager(role: string): boolean {
+  return role === 'super_admin';
+}
+
 /** Only AM (owner) or Super Admin may assign/reassign a demand's team. */
 export function canManageDemandAssignments(actor: FulfillmentActor, demand: DemandOwnershipFields): boolean {
   return canChangeDemandStatus(actor, demand);

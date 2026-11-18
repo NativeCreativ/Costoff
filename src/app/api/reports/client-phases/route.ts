@@ -3,6 +3,7 @@ import { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { buildDashboardDemandCondition } from '@/lib/auth/demandVisibility';
+import { DEMAND_RED_FLAG_DAYS } from '@/lib/demands/demandAgingQuery';
 import { PHASE_STATUS_ARRAYS, phasePercentages, toPhaseCounts } from '@/lib/reports/reportPhases';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -79,6 +80,7 @@ export async function GET(request: Request) {
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
       WITH per_demand AS (
         SELECT d.id, d.company_id, COALESCE(d.num_positions, 1) AS positions,
+               GREATEST(0, EXTRACT(DAY FROM (COALESCE(d.closed_at, NOW()) - d.opened_at)))::int AS days_open,
                COALESCE(co.client_name, co.name, d.client_name, 'No client') AS client_name,
                ${counts}
         FROM demands d
@@ -88,6 +90,8 @@ export async function GET(request: Request) {
         GROUP BY d.id, co.client_name, co.name
       )
       SELECT company_id, MIN(client_name) AS client_name, COUNT(*) AS demands, SUM(positions) AS positions,
+             ROUND(AVG(days_open))::int AS avg_days_open, MAX(days_open) AS max_days_open,
+             COUNT(*) FILTER (WHERE days_open > ${DEMAND_RED_FLAG_DAYS}) AS red_flag_demands,
              SUM(total) AS total, SUM(sourcing) AS sourcing, SUM(shortlist) AS shortlist,
              SUM(selection) AS selection, SUM(onboarding) AS onboarding, SUM(other) AS other
       FROM per_demand
@@ -102,6 +106,9 @@ export async function GET(request: Request) {
           client_name: (r.client_name as string) ?? 'No client',
           demands: Number(r.demands ?? 0),
           positions: Number(r.positions ?? 0),
+          avg_days_open: Number(r.avg_days_open ?? 0),
+          max_days_open: Number(r.max_days_open ?? 0),
+          red_flag_demands: Number(r.red_flag_demands ?? 0),
           counts: c,
           percents: phasePercentages(c),
         };

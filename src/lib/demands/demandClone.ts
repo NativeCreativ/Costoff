@@ -86,6 +86,8 @@ export function buildDemandCloneForm(demand: Demand): DemandFormState {
     engagement_type: demand.engagement_type || '',
     client_demand_id: demand.client_demand_id || '',
     intermediary_partner: demand.intermediary_partner || '',
+    shift_timings: demand.shift_timings || '',
+    comments: demand.comments || '',
     customer_jd: demand.customer_jd || '',
     // The clone shares the source's JD file (files are never deleted, so this stays valid).
     customer_jd_file_url: demand.customer_jd_file_url || '',

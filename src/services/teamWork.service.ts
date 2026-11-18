@@ -11,6 +11,8 @@ export interface TaskLog {
   start_date: string;
   end_date: string | null;
   remarks: string | null;
+  assigned_by: string | null;
+  hours: number | null;
   created_at: string;
   updated_at: string;
 }

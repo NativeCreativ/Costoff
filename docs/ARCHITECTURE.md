@@ -583,6 +583,15 @@ Migration `20261112120000_client_feedback_round`.
   so duplicate phones were never detected before the DB unique index rejected them.
 - Demand tabs: "Instructions" after Assign.
 
+### App review batch 1 (Nov 2026) — migration `20261118100000_review_batch1_fields`
+
+- Adds `demands.shift_timings` (varchar 255), `demands.comments` (text), `task_logs.assigned_by`
+  (varchar 200, free text) and `task_logs.hours` (decimal 6,2, DB check 0..9999). Adds only.
+- `DEMAND_RED_FLAG_DAYS` now lives in `src/lib/demandFulfillment/constants.ts` (client-safe);
+  `demandAgingQuery.ts` re-exports it. The Client-wise report returns `avg_days_open`,
+  `max_days_open`, `red_flag_demands` per client.
+- `DemandOverviewCard` is no longer rendered (the "All details" section was removed).
+
 ## 10. Key entry points
 
 | I need to… | Open this first |

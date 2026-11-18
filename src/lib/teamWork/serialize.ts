@@ -19,6 +19,8 @@ export function serializeTaskLog(row: {
   start_date: Date;
   end_date: Date | null;
   remarks: string | null;
+  assigned_by: string | null;
+  hours: { toString(): string } | null;
   created_at: Date;
   updated_at: Date;
   profiles: { full_name: string; role: string } | null;
@@ -26,6 +28,8 @@ export function serializeTaskLog(row: {
   return {
     id: row.id,
     user_id: row.user_id,
+    assigned_by: row.assigned_by,
+    hours: row.hours == null ? null : Number(row.hours.toString()),
     user_name: row.profiles?.full_name ?? null,
     task_name: row.task_name,
     details: row.details,

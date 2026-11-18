@@ -306,6 +306,8 @@ model demands {
   /// The customer's own demand reference, distinct from Costaff's request_id.
   client_demand_id                                     String?                   @db.VarChar(100)
   intermediary_partner                                 String?                   @db.VarChar(255)
+  shift_timings                                        String?                   @db.VarChar(255)
+  comments                                             String?
   /// The customer's exact JD, stored separately from the working skill_description.
   customer_jd                                          String?
   /// Uploaded Customer JD file (under public/uploads/jd). Independent of the pasted text.
@@ -705,6 +707,9 @@ model task_logs {
   /// NULL = still ongoing. Never before start_date (DB check).
   end_date   DateTime? @db.Date
   remarks    String?
+  /// Free text: who asked for the task.
+  assigned_by String?  @db.VarChar(200)
+  hours      Decimal?  @db.Decimal(6, 2)
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
   profiles   profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)

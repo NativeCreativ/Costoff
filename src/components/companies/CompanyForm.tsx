@@ -227,7 +227,7 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
 
       {showRounds && (
         <SectionCard
-          label="Interview Rounds"
+          label="Interview Template"
           icon={<Globe className="h-4 w-4" />}
           hint={readOnly ? undefined : "Optional. Rounds in use can't be edited or deleted. Set them inactive to hide them from new demands."}
         >

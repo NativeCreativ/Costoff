@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     else if (userId && UUID_RE.test(userId)) and.push({ user_id: userId });
     if (ISO_DATE.test(to)) and.push({ start_date: { lte: toDbDate(to) } });
     if (ISO_DATE.test(from)) and.push({ OR: [{ end_date: null }, { end_date: { gte: toDbDate(from) } }] });
-    const searchOr = buildSearchWhere<Prisma.task_logsWhereInput>(searchParams.get('search'), ['task_name', 'details', 'remarks']);
+    const searchOr = buildSearchWhere<Prisma.task_logsWhereInput>(searchParams.get('search'), ['task_name', 'details', 'remarks', 'assigned_by']);
     if (searchOr) and.push({ OR: searchOr });
     const where: Prisma.task_logsWhereInput = and.length ? { AND: and } : {};
 
@@ -66,6 +66,8 @@ export async function POST(request: Request) {
         start_date: toDbDate(v.start_date),
         end_date: v.end_date ? toDbDate(v.end_date) : null,
         remarks: v.remarks || null,
+        assigned_by: v.assigned_by || null,
+        hours: v.hours === '' ? null : v.hours,
       },
       include: TASK_LOG_INCLUDE,
     });

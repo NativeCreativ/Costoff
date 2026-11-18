@@ -32,6 +32,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         start_date: toDbDate(v.start_date),
         end_date: v.end_date ? toDbDate(v.end_date) : null,
         remarks: v.remarks || null,
+        assigned_by: v.assigned_by || null,
+        hours: v.hours === '' ? null : v.hours,
       },
       include: TASK_LOG_INCLUDE,
     });

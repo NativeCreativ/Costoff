@@ -10,14 +10,13 @@ import { useLifecycleQuery } from '@/queries/lifecycle/useLifecycleQuery';
 import { useDemandAssignmentsQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
 import { useCreateDemandMutation } from '@/queries/demands/useDemandMutations';
 import { DemandActionsBar } from './DemandActionsBar';
-import { DemandOverviewCard } from './DemandOverviewCard';
 import { DemandLifecyclePanels } from './DemandLifecyclePanels';
 import { useNamedMasterQuery } from '@/queries/masterData/useMasterData';
 import { countByPhase } from '@/lib/demandFulfillment/lifecyclePhases';
 import { DemandAssignModal } from './DemandAssignModal';
 import { DemandFormModal, type DemandFormState } from '@/components/demands/DemandFormModal';
 import type { DemandOnboarding, Profile, DemandAssignment } from '@/components/types';
-import { canChangeDemandStatus, canCloneDemand, canManageDemandPipeline, canUploadProfilesToDemand } from '@/lib/auth/demandFulfillmentPermissions';
+import { canReassignDemandAccountManager, canChangeDemandStatus, canCloneDemand, canManageDemandPipeline, canUploadProfilesToDemand } from '@/lib/auth/demandFulfillmentPermissions';
 import { canManageInterview } from '@/lib/auth/interviewPermissions';
 import { buildDemandCloneForm } from '@/lib/demands/demandClone';
 import { DEMAND_DETAIL_TABS, customPhaseTabId, demandDetailHref } from '@/lib/demandFulfillment/routes';
@@ -51,7 +50,6 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
   // `onboardings` and `assignments` are shared with the overview card, the actions bar
   // and the tabs — switching tabs never refetches the demand itself.
   const [coreOpen, setCoreOpen] = useState(true);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const phasesQuery = useNamedMasterQuery('demand-phases');
   const lifecycleQuery = useLifecycleQuery(requestId, true);
   const assignmentsQuery = useDemandAssignmentsQuery(requestId);
@@ -153,6 +151,8 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
     engagement_type: demand.engagement_type || '',
     client_demand_id: demand.client_demand_id || '',
     intermediary_partner: demand.intermediary_partner || '',
+    shift_timings: demand.shift_timings || '',
+    comments: demand.comments || '',
     customer_jd: demand.customer_jd || '',
     customer_jd_file_url: demand.customer_jd_file_url || '',
     customer_jd_file_name: demand.customer_jd_file_name || '',
@@ -220,40 +220,7 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
         )}
       </section>
 
-      <section className="rounded-xl border border-[#e2e8f0] bg-white">
-        <button type="button" className="flex w-full items-center justify-between px-4 py-3 text-left" onClick={() => setDetailsOpen((open) => !open)}>
-          <span className="text-[0.78rem] font-extrabold uppercase tracking-[0.05em] text-[#2563eb]">All details</span>
-          <span className="text-[0.75rem] text-[#64748b]">{detailsOpen ? 'Collapse' : 'Expand'}</span>
-        </button>
-        {detailsOpen && (
-          <div className="px-4 pb-4">
-            <DemandOverviewCard
-              demand={demand}
-              assignments={assignments}
-              onboardings={onboardings}
-              canManage={canManageStatus}
-              onOpenAssignModal={() => setShowAssignModal(true)}
-            />
-            <div className="mt-3 grid grid-cols-1 gap-2 text-[0.82rem] text-[#334155] md:grid-cols-2">
-              <div>Client demand id: {demand.client_demand_id || '—'}</div>
-              <div>Intermediary partner: {demand.intermediary_partner || '—'}</div>
-              <div>Engagement: {demand.engagement_type || '—'}</div>
-              <div>Experience: {(demand.experience_levels || []).join(', ') || '—'}</div>
-              <div>Total experience: {demand.total_experience || '—'}</div>
-              <div>Relevant experience: {demand.relevant_experience || '—'}</div>
-              <div className="md:col-span-2">
-                Certifications:{' '}
-                {toDemandCertifications(demand.certifications).map((c) => `${c.name} (${c.type})`).join(', ') || '—'}
-              </div>
-              <div>Locations: {(demand.locations || []).join(', ') || '—'}</div>
-              <div>Bill rate / salary: {demand.compensation_min || '—'} – {demand.compensation_max || '—'}</div>
-              <div>Positions: {demand.num_positions ?? 1}</div>
-              <div className="md:col-span-2 whitespace-pre-wrap">Customer JD: {demand.customer_jd || '—'}</div>
-            </div>
-          </div>
-        )}
-      </section>
-
+      {/* "All Details" was removed (review, Nov 2026): every field is on the Details tab. */}
       <DemandActionsBar
         demand={demand}
         onboardings={onboardings}
@@ -288,6 +255,7 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
           clientSpocs={lifecycleQuery.data?.clientSpocs ?? []}
           assignmentEvents={lifecycleQuery.data?.assignmentEvents ?? []}
           canEditDemandFields={canManageStatus}
+          canAssignAccountManager={canReassignDemandAccountManager(actor.role ?? '')}
           canManagePipeline={canManagePipeline}
           canUploadProfiles={canUploadProfiles}
           canClose={canManageStatus}

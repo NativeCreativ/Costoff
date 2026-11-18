@@ -196,3 +196,6 @@ export const DEFAULT_RESUME_CAP_PER_POSITION = 5;
 /* ─────────────── Role helpers ─────────────── */
 /** 'ta' is this codebase's existing role value for "Recruiter". */
 export const RECRUITER_PROFILE_ROLE = 'ta';
+
+/** Demand aging red-flag threshold (days open). Client-safe home; demandAgingQuery re-exports it. */
+export const DEMAND_RED_FLAG_DAYS = 30;

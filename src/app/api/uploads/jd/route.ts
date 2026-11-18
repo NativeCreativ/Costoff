@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   try {
     const currentUser = await requireAuth();
     if (!canCreateDemand(currentUser.role)) {
-      return NextResponse.json({ error: 'You do not have permission to upload a Customer JD' }, { status: 403 });
+      return NextResponse.json({ error: 'You do not have permission to upload a Client JD' }, { status: 403 });
     }
 
     const form = await request.formData();

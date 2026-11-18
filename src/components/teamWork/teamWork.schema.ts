@@ -25,6 +25,13 @@ export const taskLogSchema = z
     /** '' = still ongoing. */
     end_date: optionalDate,
     remarks: z.string().trim().max(2000, 'Keep remarks to 2000 characters or fewer'),
+    /** Free text: who asked for the task. */
+    assigned_by: z.string().trim().max(200, 'Keep this to 200 characters or fewer'),
+    /** '' = not given. Up to 9999 hours, two decimals (e.g. 1.5). */
+    hours: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || /^\d{1,4}(\.\d{1,2})?$/.test(v), 'Enter hours as a number, e.g. 2 or 1.5'),
   })
   .refine((v) => !v.end_date || v.end_date >= v.start_date, { path: ['end_date'], message: 'End date cannot be before the start date' });
 export type TaskLogValues = z.infer<typeof taskLogSchema>;

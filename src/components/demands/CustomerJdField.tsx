@@ -36,13 +36,13 @@ export function CustomerJdField({ register, error, fileUrl, fileName, onFileChan
 
   return (
     <div className="flex flex-col gap-1.5">
-      <FormTextArea label="Customer JD" rows={3} placeholder="Paste the customer's exact JD, or attach the file below" register={register} error={error} />
+      <FormTextArea label="Client JD" rows={3} placeholder="Paste the client's exact JD, or attach the file below" register={register} error={error} />
       <div className="flex flex-wrap items-center gap-2">
         {fileUrl ? (
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-[#e2e8f0] bg-white px-2 py-1 text-[0.78rem]">
             <FileText className="h-3.5 w-3.5 shrink-0 text-[#2563eb]" />
             <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="truncate font-medium text-[#2563eb] hover:underline">
-              {fileName || 'Customer JD'}
+              {fileName || 'Client JD'}
             </a>
             <button
               type="button"

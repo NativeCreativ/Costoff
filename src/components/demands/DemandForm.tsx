@@ -441,7 +441,9 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pen
                   error={errors.company_id?.message}
                   currentUserRole={currentUserRole}
                   initialCompanyLabel={initialCompanyLabel}
-                  allowQuickCreate={isCreateMode}
+                  // "+ Add Client" removed from the demand form (review, Nov 2026): clients are
+                  // added in Client Management. The drawer code stays for a possible return.
+                  allowQuickCreate={false}
                   disabled={!isCreateMode || !!clientLockedByDrawer}
                   onQuickCreate={onQuickCreate}
                   clientLockedByDrawer={clientLockedByDrawer}
@@ -505,6 +507,7 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pen
             setValue('customer_jd_file_name', name, { shouldDirty: true });
           }}
         />
+        <FormTextArea label="Comments" rows={2} placeholder="Anything else the team should know about this demand" register={register('comments')} error={errors.comments?.message} />
         <div>
           <Controller
             name="required_skills"
@@ -526,6 +529,7 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pen
         <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
           <FormField label="Client Demand Id" register={register('client_demand_id')} error={errors.client_demand_id?.message} />
           <FormField label="Intermediary Partner" register={register('intermediary_partner')} error={errors.intermediary_partner?.message} />
+          <FormField label="Shift Timings" placeholder="e.g. 2 PM – 11 PM IST" register={register('shift_timings')} error={errors.shift_timings?.message} />
           <Controller
             name="engagement_type"
             control={control}

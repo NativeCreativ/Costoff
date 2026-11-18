@@ -61,6 +61,8 @@ export const demandSchema = z
     engagement_type: z.string(),
     client_demand_id: z.string(),
     intermediary_partner: z.string(),
+    shift_timings: z.string().trim().max(255, 'Keep this to 255 characters or fewer'),
+    comments: z.string().trim().max(5000, 'Keep comments to 5000 characters or fewer'),
     customer_jd: z.string(),
     customer_jd_file_url: z.string(),
     customer_jd_file_name: z.string(),
@@ -147,6 +149,8 @@ export const demandApiSchema = z.object({
   engagement_type: z.enum(DEMAND_ENGAGEMENT_VALUES).nullable().optional().or(z.literal('')),
   client_demand_id: z.string().trim().max(100).nullable().optional().or(z.literal('')),
   intermediary_partner: z.string().trim().max(255).nullable().optional().or(z.literal('')),
+  shift_timings: z.string().trim().max(255).nullable().optional().or(z.literal('')),
+  comments: z.string().trim().max(5000).nullable().optional().or(z.literal('')),
   customer_jd: z.string().trim().max(20000).nullable().optional().or(z.literal('')),
   /** Set together with customer_jd_file_name, or both null/'' to remove the file. Only paths the
    *  upload route produced are accepted, so a demand can never point at an arbitrary URL. */

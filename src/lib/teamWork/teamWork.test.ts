@@ -4,7 +4,7 @@ import { canCreateTodo, canManageTaskLog, canManageTodo, canSeeTodo, canViewAllT
 import { fromDbDate, toDbDate } from './serialize';
 
 describe('task log schema', () => {
-  const base = { task_name: 'Screened profiles', details: '', start_date: '2026-11-13', end_date: '', remarks: '' };
+  const base = { task_name: 'Screened profiles', details: '', start_date: '2026-11-13', end_date: '', remarks: '', assigned_by: '', hours: '' };
   it('accepts an ongoing task and a one-day task', () => {
     expect(taskLogSchema.safeParse(base).success).toBe(true);
     expect(taskLogSchema.safeParse({ ...base, end_date: '2026-11-13' }).success).toBe(true);
@@ -12,6 +12,12 @@ describe('task log schema', () => {
   it('rejects an end date before the start and a missing name', () => {
     expect(taskLogSchema.safeParse({ ...base, end_date: '2026-11-12' }).success).toBe(false);
     expect(taskLogSchema.safeParse({ ...base, task_name: ' ' }).success).toBe(false);
+  });
+  it('accepts hours as a number with up to two decimals', () => {
+    expect(taskLogSchema.safeParse({ ...base, hours: '2' }).success).toBe(true);
+    expect(taskLogSchema.safeParse({ ...base, hours: '1.5', assigned_by: 'Ravi' }).success).toBe(true);
+    expect(taskLogSchema.safeParse({ ...base, hours: 'two' }).success).toBe(false);
+    expect(taskLogSchema.safeParse({ ...base, hours: '-1' }).success).toBe(false);
   });
 });
 

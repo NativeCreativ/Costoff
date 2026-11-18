@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader } from '@/components/ui/Loader';
 import { demandDetailHref } from '@/lib/demandFulfillment/routes';
 import { demandStatusLabel } from '@/lib/demands/demandStatusLabel';
+import { DEMAND_RED_FLAG_DAYS } from '@/lib/demandFulfillment/constants';
 import { REPORT_PHASES, REPORT_PHASE_LABELS } from '@/lib/reports/reportPhases';
 import { useClientPhasesReport } from '@/queries/reports/useReports';
 import { Breadcrumb, PhaseCell } from './ReportBits';
@@ -53,6 +54,7 @@ export function ClientPhasesReportView() {
                   <>
                     <th className="px-3 py-2">Client</th>
                     <th className="px-3 py-2">Demands</th>
+                    <th className="px-3 py-2" title="Average / oldest days open across the client's demands">Aging (avg / oldest)</th>
                   </>
                 ) : (
                   <>
@@ -78,6 +80,14 @@ export function ClientPhasesReportView() {
                     >
                       <td className="px-3 py-2 font-semibold text-[#2563eb]">{row.client_name}</td>
                       <td className="px-3 py-2">{row.demands}</td>
+                      <td className="whitespace-nowrap px-3 py-2">
+                        {row.avg_days_open}d / {row.max_days_open}d
+                        {row.red_flag_demands > 0 && (
+                          <span className="ml-1.5 rounded bg-[#fef2f2] px-1.5 py-0.5 text-[0.7rem] font-semibold text-[#dc2626]" title={`Demands open more than ${DEMAND_RED_FLAG_DAYS} days`}>
+                            {row.red_flag_demands} over {DEMAND_RED_FLAG_DAYS}d
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2">{row.positions}</td>
                       <td className="px-3 py-2 font-semibold">{row.counts.total}</td>
                       {REPORT_PHASES.map((phase) => (
@@ -96,7 +106,7 @@ export function ClientPhasesReportView() {
                         {row.job_title && <div className="text-[0.75rem] text-[#64748b]">{row.job_title}</div>}
                       </td>
                       <td className="px-3 py-2">{row.status ? demandStatusLabel(row.status) : '—'}</td>
-                      <td className="px-3 py-2">{row.days_open}d</td>
+                      <td className={`px-3 py-2 ${row.days_open > DEMAND_RED_FLAG_DAYS ? 'font-semibold text-[#dc2626]' : ''}`}>{row.days_open}d</td>
                       <td className="px-3 py-2">{row.positions}</td>
                       <td className="px-3 py-2 font-semibold">{row.counts.total}</td>
                       {REPORT_PHASES.map((phase) => (
