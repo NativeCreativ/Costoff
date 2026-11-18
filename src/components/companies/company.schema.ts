@@ -64,6 +64,7 @@ export const companySchema = z.object({
   city: z.string().trim().max(100).optional().or(z.literal('')),
   state: z.string().trim().max(100).optional().or(z.literal('')),
   country: z.string().trim().max(100).optional().or(z.literal('')),
+  other_details: z.string().trim().max(5000).optional().or(z.literal('')),
   status: z.enum(COMPANY_STATUS_VALUES).optional(),
   /**
    * Optional company-level Account Manager. A profiles.id whose role is 'account_manager' —
@@ -110,6 +111,7 @@ export const companyFormSchema = z.object({
   city: z.string().trim().max(100),
   state: z.string().trim().max(100),
   country: z.string().trim().max(100),
+  other_details: z.string().trim().max(5000, 'Keep this to 5000 characters or fewer'),
   status: z.enum(COMPANY_STATUS_VALUES),
   spocs: clientSpocListSchema,
 });

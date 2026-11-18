@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Globe, MapPin, Phone, Save } from 'lucide-react';
 import { FormField } from '@/components/ui/FormField';
+import { FormTextArea } from '@/components/ui/FormTextArea';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Button } from '@/components/ui/button';
 import { InterviewRoundConfigurator, roundIdentity } from '@/components/interviewRounds/InterviewRoundConfigurator';
@@ -24,6 +25,7 @@ export type CompanyFormValues = {
   city: string;
   state: string;
   country: string;
+  other_details: string;
   status: 'ACTIVE' | 'INACTIVE';
   spocs: ClientSpocItem[];
 };
@@ -223,6 +225,13 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
           <FormField label="State" placeholder="e.g. Karnataka" register={register('state')} error={errors.state?.message} disabled={readOnly} />
           <FormField label="Country" placeholder="e.g. India" register={register('country')} error={errors.country?.message} disabled={readOnly} />
         </div>
+        <FormTextArea
+          label="Other Details"
+          rows={2}
+          placeholder={'Anything not covered above, one per line as "Label: value"'}
+          register={register('other_details')}
+          error={errors.other_details?.message}
+        />
       </SectionCard>
 
       {showRounds && (

@@ -153,6 +153,7 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
     intermediary_partner: demand.intermediary_partner || '',
     shift_timings: demand.shift_timings || '',
     comments: demand.comments || '',
+    other_details: demand.other_details || '',
     customer_jd: demand.customer_jd || '',
     customer_jd_file_url: demand.customer_jd_file_url || '',
     customer_jd_file_name: demand.customer_jd_file_name || '',

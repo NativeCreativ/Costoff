@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { queryKeys } from '@/lib/queryKeys';
-import { createCandidate, updateCandidate, deleteCandidate, bulkDeleteCandidates, DuplicateCandidateError } from '@/services/candidate.service';
+import { createCandidate, updateCandidate, deleteCandidate, bulkDeleteCandidates, DuplicateCandidateError, uploadCandidateFile, type CandidateFileKind } from '@/services/candidate.service';
+import { useToast } from '@/components/ui/Toast';
 import { CandidateFormState } from '@/components/candidates/CandidateFormModal';
 
 export function getDuplicateCandidateError(err: unknown): DuplicateCandidateError | null {
@@ -53,6 +54,17 @@ export function useBulkDeleteCandidatesMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['candidates'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+/** Uploads a candidate resume / photo / RTR file. Nothing is cached: the form keeps the url. */
+export function useUploadCandidateFileMutation() {
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ kind, file }: { kind: CandidateFileKind; file: File }) => uploadCandidateFile(kind, file),
+    onError: (err: any) => {
+      toast.error('Upload Failed', err?.response?.data?.error || err?.message || 'Failed to upload the file');
     },
   });
 }

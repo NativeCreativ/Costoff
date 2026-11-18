@@ -164,3 +164,20 @@ export async function addCandidateConversation(
   const { data } = await api.post(`/candidates/${encodeURIComponent(candidateId)}/conversations`, payload);
   return data.conversation;
 }
+
+export type CandidateFileKind = 'resume' | 'photo' | 'rtr';
+
+/** Uploads a resume / photo / RTR file before the candidate is saved; the form keeps the url. */
+export async function uploadCandidateFile(kind: CandidateFileKind, file: File): Promise<{ url: string; name: string }> {
+  const formData = new FormData();
+  formData.append('kind', kind);
+  formData.append('file', file);
+  const { data } = await api.post('/uploads/candidate-file', formData, { headers: { 'Content-Type': undefined } });
+  return { url: data.url, name: data.name };
+}
+
+/** The full PAN (only for someone who may edit the candidate). Null when none is saved. */
+export async function getCandidatePan(candidateId: string): Promise<string | null> {
+  const { data } = await api.get(`/candidates/${encodeURIComponent(candidateId)}/pan`);
+  return data.pan ?? null;
+}

@@ -215,6 +215,9 @@ export const SOURCE_LABELS: Record<string, string> = {
   linkedin: 'LinkedIn',
   direct: 'Direct Portal',
   referral: 'Referral',
+  headhunt: 'HeadHunt',
+  database: 'Database',
+  indeed: 'Indeed',
   others: 'Others',
 };
 

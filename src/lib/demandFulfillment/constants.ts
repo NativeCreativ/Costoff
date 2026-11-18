@@ -84,7 +84,7 @@ export const SUBMISSION_FORWARD_ORDER: SubmissionStatus[] = [
 
 /** Unified source list used everywhere: Candidate form, Pipeline filter/cards, Add Existing Candidate,
  * Interview Calendar, Exports. 'direct' -> "Direct Portal", 'indeed' added to Candidate form. */
-export const UNIFIED_SOURCE_VALUES = ['naukri', 'linkedin', 'indeed', 'direct', 'referral', 'others'] as const;
+export const UNIFIED_SOURCE_VALUES = ['naukri', 'linkedin', 'indeed', 'direct', 'referral', 'headhunt', 'database', 'others'] as const;
 export type UnifiedSource = (typeof UNIFIED_SOURCE_VALUES)[number];
 
 /** @deprecated Use UNIFIED_SOURCE_VALUES. Kept for type compatibility in legacy code. */

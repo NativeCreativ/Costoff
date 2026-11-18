@@ -27,6 +27,7 @@ import { useDemandsQuery } from '@/queries/demands/useDemandsQuery';
 import { DEMAND_TERMINAL_STATUS_VALUES } from '@/lib/demandFulfillment/constants';
 import { EntitySelect } from '@/components/ui/EntitySelect';
 import type { Candidate } from '@/components/types';
+import { EMPTY_CANDIDATE_PROFILE_FIELDS, candidateProfileFormFields } from '@/components/candidates/candidateFormDefaults';
 import { STAGE_COLORS } from '@/components/types';
 
 const emptyCandidateForm: CandidateFormState = {
@@ -36,6 +37,7 @@ const emptyCandidateForm: CandidateFormState = {
   current_ctc: '', expected_ctc: '', available_from: '', availability: 'Immediate',
   work_mode: 'Work On Site', linked_url: '', source: 'naukri',
   offer_in_hand: 'no', offer_company: '', offer_ctc: '', offer_doj: '',
+  ...EMPTY_CANDIDATE_PROFILE_FIELDS,
 };
 
 /** /candidates — the Candidate Pipeline list. */
@@ -181,6 +183,7 @@ export default function CandidatesPage() {
       offer_company: c.offer_company || '',
       offer_ctc: c.offer_ctc ? c.offer_ctc.toString() : '',
       offer_doj: c.offer_doj ? c.offer_doj.slice(0, 10) : '',
+      ...candidateProfileFormFields(c),
     });
     setShowEditCandidateModal(true);
   };

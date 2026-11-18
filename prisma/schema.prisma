@@ -42,6 +42,25 @@ model candidates {
   offer_company                            String?       @db.VarChar(255)
   offer_ctc                                Decimal?      @db.Decimal(10, 2)
   offer_doj                                DateTime?     @db.Date
+  alternate_email                          String?       @db.VarChar(255)
+  relevant_experience                      String?       @db.VarChar(100)
+  /// AES-256-GCM ciphertext (panCrypto.ts). Never returned by the API; see pan_last4.
+  pan_encrypted                            String?
+  pan_last4                                String?       @db.VarChar(4)
+  date_of_birth                            DateTime?     @db.Date
+  rtr_acknowledged                         Boolean       @default(false)
+  rtr_note                                 String?       @db.VarChar(500)
+  rtr_file_url                             String?       @db.VarChar(500)
+  rtr_file_name                            String?       @db.VarChar(255)
+  photo_url                                String?       @db.VarChar(500)
+  resume_url                               String?       @db.VarChar(500)
+  resume_file_name                         String?       @db.VarChar(255)
+  employee_id                              String?       @db.VarChar(100)
+  core_specialization                      String?       @db.VarChar(255)
+  duration_in_role                         String?       @db.VarChar(100)
+  reason_for_change                        String?
+  last_working_day                         DateTime?     @db.Date
+  other_details                            String?
   candidate_conversations                  candidate_conversations[]
   demand_call_logs                         demand_call_logs[]
   profiles_candidates_added_byToprofiles  profiles?     @relation("candidates_added_byToprofiles", fields: [added_by], references: [id], onUpdate: NoAction)
@@ -116,6 +135,7 @@ model skills {
 
 model companies {
   id                                      String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  other_details                           String?
   client_name                             String?                    @db.VarChar(255)
   name                                    String                     @db.VarChar(255)
   email                                   String?                    @db.VarChar(255)
@@ -308,6 +328,7 @@ model demands {
   intermediary_partner                                 String?                   @db.VarChar(255)
   shift_timings                                        String?                   @db.VarChar(255)
   comments                                             String?
+  other_details                                        String?
   /// The customer's exact JD, stored separately from the working skill_description.
   customer_jd                                          String?
   /// Uploaded Customer JD file (under public/uploads/jd). Independent of the pasted text.

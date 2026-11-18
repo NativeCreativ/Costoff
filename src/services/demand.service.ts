@@ -68,6 +68,7 @@ function toDemandPayload(form: DemandFormState) {
     intermediary_partner: form.intermediary_partner || null,
     shift_timings: form.shift_timings || null,
     comments: form.comments || null,
+    other_details: form.other_details || null,
     customer_jd: form.customer_jd || null,
     customer_jd_file_url: form.customer_jd_file_url || null,
     customer_jd_file_name: form.customer_jd_file_url ? form.customer_jd_file_name || null : null,

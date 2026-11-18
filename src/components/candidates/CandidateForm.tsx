@@ -5,6 +5,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
+import { FormTextArea } from '@/components/ui/FormTextArea';
+import { CandidateFileField } from './CandidateFileField';
+import { PanField } from './PanField';
 import { SkillsSelector } from '@/components/ui/SkillsSelector';
 import { LocationMultiSelect } from '@/components/masterData/LocationMultiSelect';
 import { useNamedMasterQuery } from '@/queries/masterData/useMasterData';
@@ -23,6 +26,8 @@ interface CandidateFormProps {
   isSubmitting?: boolean;
   idFieldsReadOnlyPlaceholders?: boolean;
   extraContent?: ReactNode;
+  /** Edit mode: the saved candidate, so the PAN field can show its last 4 / reveal it. */
+  savedCandidate?: { id: string; pan_last4?: string | null } | null;
 }
 
 function SectionCard({ label, children }: { label: string; children: ReactNode }) {
@@ -34,7 +39,7 @@ function SectionCard({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, pendingLabel, isSubmitting, idFieldsReadOnlyPlaceholders, extraContent }: CandidateFormProps) {
+export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, pendingLabel, isSubmitting, idFieldsReadOnlyPlaceholders, extraContent, savedCandidate }: CandidateFormProps) {
   const masterLocations = useNamedMasterQuery('locations');
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<CandidateFormState>({
     resolver: zodResolver(candidateSchema),
@@ -44,6 +49,11 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
   // The role category lives inside the Key Skills selector but is its own saved field.
   const skillsCategoryId = watch('skills_category_id') ?? '';
   const offerInHand = watch('offer_in_hand') === 'yes';
+  const fileSetter = (urlKey: 'resume_url' | 'photo_url' | 'rtr_file_url', nameKey?: 'resume_file_name' | 'rtr_file_name') =>
+    ({ url, name }: { url: string; name: string }) => {
+      setValue(urlKey, url, { shouldDirty: true });
+      if (nameKey) setValue(nameKey, name, { shouldDirty: true });
+    };
   const urgency = candidateUrgency({
     offer_in_hand: offerInHand,
     offer_doj: watch('offer_doj') || null,
@@ -56,12 +66,20 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
 
       <SectionCard label="Basic Information">
         <div className="grid grid-cols-2 gap-2.5">
-          <FormField label="Full Name" required placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. Ankit Verma' : undefined} register={register('full_name')} error={errors.full_name?.message} />
-          <FormField label="Email" required type="email" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. ankit@gmail.com' : undefined} register={register('email')} error={errors.email?.message} />
+          <FormField label="Full Name" required placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. Ankit Verma' : undefined} hint="As per Aadhaar / PAN" register={register('full_name')} error={errors.full_name?.message} />
+          <FormField label="Date of Birth" type="date" register={register('date_of_birth')} error={errors.date_of_birth?.message} />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <FormField label="Phone Number" required placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. +91 9876543210' : undefined} register={register('phone')} error={errors.phone?.message} />
-          <FormField label="Alternate Phone Number" placeholder={idFieldsReadOnlyPlaceholders ? 'Optional' : undefined} register={register('alternate_phone')} error={errors.alternate_phone?.message} />
+          <FormField label="Email" required type="email" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. ankit@gmail.com' : undefined} register={register('email')} error={errors.email?.message} />
+          <FormField label="Alternate Email" type="email" placeholder="Optional" register={register('alternate_email')} error={errors.alternate_email?.message} />
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <FormField label="Mobile Number" required placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. +91 9876543210' : undefined} register={register('phone')} error={errors.phone?.message} />
+          <FormField label="Alternate Contact Number" placeholder={idFieldsReadOnlyPlaceholders ? 'Optional' : undefined} register={register('alternate_phone')} error={errors.alternate_phone?.message} />
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <PanField register={register('pan')} error={errors.pan?.message} savedCandidate={savedCandidate} />
+          <CandidateFileField kind="photo" label="Photo (passport size)" url={watch('photo_url') ?? ''} name="" onChange={fileSetter('photo_url')} />
         </div>
       </SectionCard>
 
@@ -93,6 +111,15 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
           <FormField label="Current Company" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. TCS / Infosys' : undefined} register={register('current_company')} error={errors.current_company?.message} />
           <FormField label="Current Designation" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. Senior Developer' : undefined} register={register('current_designation')} error={errors.current_designation?.message} />
           <FormField label="Total Experience" placeholder={idFieldsReadOnlyPlaceholders ? 'e.g. 3-5 Years' : undefined} register={register('total_experience')} error={errors.total_experience?.message} />
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          <FormField label="Relevant Experience" placeholder="e.g. 4 years in Java" register={register('relevant_experience')} error={errors.relevant_experience?.message} />
+          <FormField label="Employee ID" placeholder="At the current company" register={register('employee_id')} error={errors.employee_id?.message} />
+          <FormField label="Duration in Current Role" placeholder="e.g. 2 years 3 months" register={register('duration_in_role')} error={errors.duration_in_role?.message} />
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <FormField label="Core Specialization" placeholder="e.g. Payments backend" register={register('core_specialization')} error={errors.core_specialization?.message} />
+          <FormField label="Reason for Change" placeholder="Why they want to move" register={register('reason_for_change')} error={errors.reason_for_change?.message} />
         </div>
         <div>
           <Controller
@@ -137,6 +164,7 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
               <FormSelect label="Work Mode" options={WORK_MODE_OPTIONS} value={field.value} onChange={field.onChange} allowClear placeholder="Select work mode (optional)" />
             )}
           />
+          <FormField label="Last Working Day (LWD)" type="date" register={register('last_working_day')} error={errors.last_working_day?.message} />
         </div>
         {/* Offer in hand + notice period drive the Urgent badge (candidateUrgency). */}
         <div className="grid grid-cols-4 gap-2.5">
@@ -182,6 +210,25 @@ export function CandidateForm({ defaultValues, onSubmit, onCancel, submitLabel, 
             )}
           />
         </div>
+        <CandidateFileField kind="resume" label="Resume" url={watch('resume_url') ?? ''} name={watch('resume_file_name') ?? ''} onChange={fileSetter('resume_url', 'resume_file_name')} />
+        <div className="flex flex-col gap-2 rounded-md border border-[#e2e8f0] bg-white p-2.5">
+          <label className="flex items-center gap-2 text-[0.82rem] font-semibold text-[#334155]">
+            <input type="checkbox" {...register('rtr_acknowledged')} />
+            RTR / acknowledgment received from the candidate
+          </label>
+          <FormField label="RTR note" placeholder="e.g. Acknowledged by email on 12 Nov" register={register('rtr_note')} error={errors.rtr_note?.message} />
+          <CandidateFileField kind="rtr" label="RTR / acknowledgment file" url={watch('rtr_file_url') ?? ''} name={watch('rtr_file_name') ?? ''} onChange={fileSetter('rtr_file_url', 'rtr_file_name')} />
+        </div>
+      </SectionCard>
+
+      <SectionCard label="Other Details">
+        <FormTextArea
+          label="Other Details"
+          rows={3}
+          placeholder={'Anything not covered above, one per line as "Label: value" (e.g. Passport: Yes)'}
+          register={register('other_details')}
+          error={errors.other_details?.message}
+        />
       </SectionCard>
 
       <div className="flex justify-end gap-2.5">

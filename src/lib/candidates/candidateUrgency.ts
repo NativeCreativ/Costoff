@@ -3,14 +3,14 @@
  * the urgency" using Offer_in_Hand + DOJ and Notice_Period).
  *
  *   high   — has an offer AND (its joining date is within URGENT_DOJ_DAYS, or already passed,
- *            or their notice period is short: Immediate / 15 Days). We may lose them soon.
+ *            or their notice period is short: Immediate / 0-15 Days). We may lose them soon.
  *   medium — has an offer, joining date further away or unknown.
  *   null   — no offer in hand.
  *
  * Kept in one place so the list badge, the candidate drawer and any later report agree.
  */
 export const URGENT_DOJ_DAYS = 30;
-const SHORT_NOTICE_PERIODS = ['Immediate', '15 Days'];
+const SHORT_NOTICE_PERIODS = ['Immediate', '0-15 Days'];
 
 export interface CandidateUrgencyInput {
   offer_in_hand?: boolean | null;
@@ -48,7 +48,7 @@ export function candidateUrgency(c: CandidateUrgencyInput, today: Date = new Dat
     return { level: 'high', label: 'Urgent', reason: days === 0 ? 'Offer joining date is today' : `Offer joining date in ${days} day${days === 1 ? '' : 's'}` };
   }
   if (shortNotice) {
-    return { level: 'high', label: 'Urgent', reason: `Offer in hand with ${c.availability === 'Immediate' ? 'immediate availability' : '15 days notice'}` };
+    return { level: 'high', label: 'Urgent', reason: `Offer in hand with ${c.availability === 'Immediate' ? 'immediate availability' : 'up to 15 days notice'}` };
   }
   return {
     level: 'medium',

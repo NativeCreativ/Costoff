@@ -32,6 +32,7 @@ export interface Demand {
   intermediary_partner?: string | null;
   shift_timings?: string | null;
   comments?: string | null;
+  other_details?: string | null;
   customer_jd?: string | null;
   /** Uploaded Customer JD file (url under /uploads/jd/) and its original name. */
   customer_jd_file_url?: string | null;
@@ -202,6 +203,24 @@ export interface Candidate {
   offer_company?: string | null;
   offer_ctc?: number | null;
   offer_doj?: string | null;
+  /** Review batch 2 (Nov 2026). The PAN itself is never sent to the browser; pan_last4 is. */
+  alternate_email?: string | null;
+  relevant_experience?: string | null;
+  pan_last4?: string | null;
+  date_of_birth?: string | null;
+  rtr_acknowledged?: boolean;
+  rtr_note?: string | null;
+  rtr_file_url?: string | null;
+  rtr_file_name?: string | null;
+  photo_url?: string | null;
+  resume_url?: string | null;
+  resume_file_name?: string | null;
+  employee_id?: string | null;
+  core_specialization?: string | null;
+  duration_in_role?: string | null;
+  reason_for_change?: string | null;
+  last_working_day?: string | null;
+  other_details?: string | null;
   total_experience?: string;
   work_mode?: string;
   linked_url?: string;
@@ -329,6 +348,7 @@ export interface Company {
   phone?: string | null;
   website?: string | null;
   address?: string | null;
+  other_details?: string | null;
   city?: string | null;
   state?: string | null;
   country?: string | null;

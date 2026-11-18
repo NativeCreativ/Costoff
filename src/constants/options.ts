@@ -36,9 +36,12 @@ export const WORK_MODE_OPTIONS = [
 
 export const NOTICE_PERIOD_OPTIONS = [
   { value: 'Immediate', label: 'Immediate' },
-  { value: '15 Days', label: '15 Days' },
+  { value: '0-15 Days', label: '0-15 Days' },
   { value: '30 Days', label: '30 Days' },
   { value: '60 Days', label: '60 Days' },
+  { value: '90 Days', label: '90 Days' },
+  { value: '>90 Days', label: '>90 Days' },
+  { value: 'On Break', label: 'On break' },
 ];
 
 export const CANDIDATE_SOURCE_OPTIONS = [
@@ -47,6 +50,8 @@ export const CANDIDATE_SOURCE_OPTIONS = [
   { value: 'indeed', label: 'Indeed' },
   { value: 'direct', label: 'Direct Portal' },
   { value: 'referral', label: 'Referral' },
+  { value: 'headhunt', label: 'HeadHunt' },
+  { value: 'database', label: 'Database' },
   { value: 'others', label: 'Others' },
 ];
 

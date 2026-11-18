@@ -21,7 +21,7 @@ import type { Company, ClientSpoc as CompanySpoc } from '@/components/types';
 
 const EMPTY_FORM: CompanyFormValues = {
   name: '', email: '', phone: '', website: '',
-  address: '', city: '', state: '', country: '', status: 'ACTIVE', spocs: [],
+  address: '', city: '', state: '', country: '', other_details: '', status: 'ACTIVE', spocs: [],
 };
 
 const toStatus = (value?: string | null): CompanyFormValues['status'] =>
@@ -98,6 +98,7 @@ export function CompanyFormModal({
         city: company.city || '',
         state: company.state || '',
         country: company.country || '',
+        other_details: company.other_details || '',
         status: toStatus(company.status),
         spocs: spocsOf(company),
       }
@@ -111,6 +112,7 @@ export function CompanyFormModal({
         city: editingCompany.city || '',
         state: editingCompany.state || '',
         country: editingCompany.country || '',
+        other_details: editingCompany.other_details || '',
         status: toStatus(editingCompany.status),
         spocs: spocsOf(editingCompany),
       }
@@ -313,6 +315,7 @@ export function CompanyViewModal({ company, onClose }: { company: Company; onClo
         ['City', c.city],
         ['State', c.state],
         ['Country', c.country],
+        ['Other Details', c.other_details],
       ],
     },
     {

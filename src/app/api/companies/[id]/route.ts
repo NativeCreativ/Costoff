@@ -101,7 +101,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
-    const { name, client_name, email, phone, website, address, city, state, country, status, account_manager_id, spocs } = parsed.data;
+    const { name, client_name, email, phone, website, address, city, state, country, other_details, status, account_manager_id, spocs } = parsed.data;
 
     const nameOwner = await findByNormalizedName<{ id: string; name: string }>(prisma.companies)(name);
     if (nameOwner && nameOwner.id !== id) {
@@ -154,6 +154,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           city: city?.trim() || null,
           state: state?.trim() || null,
           country: country?.trim() || null,
+          ...(other_details !== undefined ? { other_details: other_details.trim() || null } : {}),
           status: status ?? 'ACTIVE',
           ...manager,
           updated_by: currentUser.userId,

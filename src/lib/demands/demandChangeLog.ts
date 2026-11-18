@@ -21,6 +21,7 @@ export const DEMAND_CHANGE_FIELD_LABELS: Record<string, string> = {
   intermediary_partner: 'Intermediary Partner',
   shift_timings: 'Shift Timings',
   comments: 'Comments',
+  other_details: 'Other details',
   end_client: 'End Client',
   skill_group: 'Skill Group',
   required_skills: 'Required Skills',
@@ -50,7 +51,7 @@ export const CANDIDATE_CHANGE_FIELD_LABELS: Record<string, string> = {
   current_company: 'Current company',
   current_designation: 'Current designation',
   total_experience: 'Total experience',
-  skills: 'Key skills',
+  skills: 'Skills',
   qualification: 'Qualification',
   specialization: 'Specialization',
   current_ctc: 'Current CTC',
@@ -64,6 +65,20 @@ export const CANDIDATE_CHANGE_FIELD_LABELS: Record<string, string> = {
   offer_company: 'Offer company',
   offer_ctc: 'Offer CTC',
   offer_doj: 'Offer joining date',
+  alternate_email: 'Alternate email',
+  relevant_experience: 'Relevant experience',
+  pan_last4: 'PAN (last 4)',
+  date_of_birth: 'Date of birth',
+  rtr_acknowledged: 'RTR acknowledged',
+  rtr_file_name: 'RTR file',
+  photo_url: 'Photo',
+  resume_file_name: 'Resume',
+  employee_id: 'Employee ID',
+  core_specialization: 'Core specialization',
+  duration_in_role: 'Duration in current role',
+  reason_for_change: 'Reason for change',
+  last_working_day: 'Last working day',
+  other_details: 'Other details',
 };
 
 /** Every label the change log can show, keyed by the stored `field`. */
@@ -131,6 +146,7 @@ export interface DemandChangeSource {
   intermediary_partner?: string | null;
   shift_timings?: string | null;
   comments?: string | null;
+  other_details?: string | null;
   technology_stack?: string[] | null;
   experience_levels?: string[] | null;
   total_experience?: string | null;
@@ -165,6 +181,7 @@ export function demandChangeSnapshot(d: DemandChangeSource): Record<string, Chan
     intermediary_partner: d.intermediary_partner,
     shift_timings: d.shift_timings,
     comments: d.comments,
+    other_details: d.other_details,
     end_client: d.end_clients?.name ?? null,
     skill_group: d.skill_categories?.name ?? null,
     required_skills: d.technology_stack ?? [],
@@ -204,6 +221,7 @@ export function sentChangeFields(
     ['intermediary_partner', has('intermediary_partner')],
     ['shift_timings', has('shift_timings')],
     ['comments', has('comments')],
+    ['other_details', has('other_details')],
     ['end_client', has('end_client_id')],
     ['skill_group', has('skills_category_id')],
     ['required_skills', sent('required_skills')],

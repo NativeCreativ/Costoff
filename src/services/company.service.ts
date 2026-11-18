@@ -58,6 +58,7 @@ export interface CompanyFormPayload {
   city?: string;
   state?: string;
   country?: string;
+  other_details?: string;
   status?: string;
   /** Optional company Account Manager (profiles.id). Null / omitted means "no AM". */
   account_manager_id?: string | null;

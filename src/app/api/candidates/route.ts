@@ -27,6 +27,8 @@ import { parsePagination, buildPaginationMeta, PAGE_PARAM, PAGE_SIZE_PARAM } fro
 import { loadDemandContext } from '@/lib/demandFulfillment/loadDemandContext';
 import { SUBMISSION_SOURCE_VALUES } from '@/lib/demandFulfillment/constants';
 import { normalizeSkillsInput } from '@/lib/skills';
+import { candidateProfileFieldData } from '@/lib/candidates/candidateProfileFields';
+import { withoutPanCiphertext } from '@/lib/candidates/panCrypto';
 import { isAllowedListId } from '@/lib/settingsListValidation';
 import { fetchCandidatePickerPage } from '@/lib/candidates/candidatePickerQuery';
 
@@ -42,11 +44,13 @@ function serializeCandidate<T extends {
   current_ctc?: unknown;
   expected_ctc?: unknown;
   offer_ctc?: unknown;
+  pan_encrypted?: unknown;
   profiles_candidates_added_byToprofiles?: { full_name: string; email: string } | null;
 }>(candidate: T) {
   const { profiles_candidates_added_byToprofiles, ...rest } = candidate;
   return {
-    ...rest,
+    // The PAN ciphertext never leaves the server; pan_last4 is shown instead.
+    ...withoutPanCiphertext(rest),
     current_ctc: toNumberOrNull(candidate.current_ctc),
     expected_ctc: toNumberOrNull(candidate.expected_ctc),
     offer_ctc: toNumberOrNull(candidate.offer_ctc),
@@ -362,6 +366,7 @@ export async function POST(request: Request) {
       offer_company: values.offer_in_hand ? values.offer_company?.trim() || null : null,
       offer_ctc: values.offer_in_hand ? values.offer_ctc ?? null : null,
       offer_doj: values.offer_in_hand && values.offer_doj ? new Date(values.offer_doj) : null,
+      ...candidateProfileFieldData(values),
       added_by: currentUser.userId,
       updated_by: currentUser.userId,
     };
@@ -510,6 +515,7 @@ export async function PUT(request: Request) {
       updateData.offer_ctc = values.offer_in_hand ? values.offer_ctc ?? null : null;
       updateData.offer_doj = values.offer_in_hand && values.offer_doj ? new Date(values.offer_doj) : null;
     }
+    Object.assign(updateData, candidateProfileFieldData(values));
     updateData.updated_by = currentUser.userId;
 
     let data;

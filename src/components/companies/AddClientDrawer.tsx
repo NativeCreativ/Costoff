@@ -36,6 +36,7 @@ const EMPTY_FORM: CompanyFormValues = {
   city: '',
   state: '',
   country: '',
+  other_details: '',
   status: 'ACTIVE',
   spocs: [],
 };

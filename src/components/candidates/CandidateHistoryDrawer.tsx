@@ -103,6 +103,22 @@ export function CandidateHistoryDrawer({ candidateDrawer, setCandidateDrawer, op
                     </div>
                   )}
                   <div><i className="fa-regular fa-calendar-check w-4 text-[#64748b]"></i> <strong>Added Date:</strong> {candidateDrawer.data.candidate.created_at ? formatDate(candidateDrawer.data.candidate.created_at) : 'Recent'}</div>
+                  {candidateDrawer.data.candidate.alternate_email && <div><strong>Alternate Email:</strong> {candidateDrawer.data.candidate.alternate_email}</div>}
+                  {candidateDrawer.data.candidate.date_of_birth && <div><strong>Date of Birth:</strong> {formatDate(candidateDrawer.data.candidate.date_of_birth)}</div>}
+                  {candidateDrawer.data.candidate.relevant_experience && <div><strong>Relevant Experience:</strong> {candidateDrawer.data.candidate.relevant_experience}</div>}
+                  {candidateDrawer.data.candidate.core_specialization && <div><strong>Core Specialization:</strong> {candidateDrawer.data.candidate.core_specialization}</div>}
+                  {candidateDrawer.data.candidate.employee_id && <div><strong>Employee ID:</strong> {candidateDrawer.data.candidate.employee_id}</div>}
+                  {candidateDrawer.data.candidate.duration_in_role && <div><strong>In Current Role:</strong> {candidateDrawer.data.candidate.duration_in_role}</div>}
+                  {candidateDrawer.data.candidate.last_working_day && <div><strong>Last Working Day:</strong> {formatDate(candidateDrawer.data.candidate.last_working_day)}</div>}
+                  {candidateDrawer.data.candidate.pan_last4 && <div><strong>PAN:</strong> <span className="font-mono">XXXXXX{candidateDrawer.data.candidate.pan_last4}</span></div>}
+                  <div><strong>RTR:</strong> {candidateDrawer.data.candidate.rtr_acknowledged ? 'Received' : 'Not received'}{candidateDrawer.data.candidate.rtr_note ? ` · ${candidateDrawer.data.candidate.rtr_note}` : ''}
+                    {candidateDrawer.data.candidate.rtr_file_url && <> · <a href={candidateDrawer.data.candidate.rtr_file_url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] hover:underline">file</a></>}
+                  </div>
+                  {candidateDrawer.data.candidate.resume_url && (
+                    <div><strong>Resume:</strong> <a href={candidateDrawer.data.candidate.resume_url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] hover:underline">{candidateDrawer.data.candidate.resume_file_name || 'Open'}</a></div>
+                  )}
+                  {candidateDrawer.data.candidate.reason_for_change && <div className="col-span-2"><strong>Reason for Change:</strong> {candidateDrawer.data.candidate.reason_for_change}</div>}
+                  {candidateDrawer.data.candidate.other_details && <div className="col-span-2 whitespace-pre-line"><strong>Other Details:</strong> {candidateDrawer.data.candidate.other_details}</div>}
                 </div>
 
                 {/* BELONGING REQUEST ID(S) BADGE */}

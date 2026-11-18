@@ -23,6 +23,7 @@ import { CandidateFormModal, CandidateFormState } from '@/components/candidates/
 import { UNIFIED_SOURCE_VALUES } from '@/lib/demandFulfillment/constants';
 import { submissionStatusLabel } from './statusStyles';
 import type { Candidate } from '@/components/types';
+import { EMPTY_CANDIDATE_PROFILE_FIELDS } from '@/components/candidates/candidateFormDefaults';
 import { ReadOnlyChips } from '../ui/ReadOnlyChips';
 
 const EMPTY_CANDIDATE_FORM: CandidateFormState = {
@@ -50,6 +51,7 @@ const EMPTY_CANDIDATE_FORM: CandidateFormState = {
   offer_company: '',
   offer_ctc: '',
   offer_doj: '',
+  ...EMPTY_CANDIDATE_PROFILE_FIELDS,
 };
 
 const SOURCE_OPTIONS = UNIFIED_SOURCE_VALUES.map((v) => ({

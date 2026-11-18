@@ -10,6 +10,8 @@ const CANDIDATE_TO_SUBMISSION_SOURCE: Record<string, UnifiedSource> = {
   indeed: 'indeed',
   direct: 'direct',
   referral: 'referral',
+  headhunt: 'headhunt',
+  database: 'database',
   others: 'others',
 };
 

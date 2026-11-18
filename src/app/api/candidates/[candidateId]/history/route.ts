@@ -1,3 +1,4 @@
+import { withoutPanCiphertext } from '@/lib/candidates/panCrypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
@@ -139,7 +140,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       candidate: {
-        ...candidate,
+        ...withoutPanCiphertext(candidate),
         current_ctc: toNum(candidate.current_ctc),
         expected_ctc: toNum(candidate.expected_ctc),
         offer_ctc: toNum(candidate.offer_ctc),

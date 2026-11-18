@@ -39,6 +39,7 @@ export interface CompanyCreateInput {
   city?: string | null;
   state?: string | null;
   country?: string | null;
+  other_details?: string | null;
   status?: string | null;
   /**
    * Resolved owner pair from `resolveCompanyManager` (AM id + managed_by id). Exactly one is
@@ -59,6 +60,7 @@ type CompanyCreateData = {
   city: string | null;
   state: string | null;
   country: string | null;
+  other_details: string | null;
   status: string;
   account_manager_id: string | null;
   managed_by: string | null;
@@ -95,6 +97,7 @@ export function toCompanyCreateData(input: CompanyCreateInput): CompanyCreateDat
     city: blankToNull(input.city),
     state: blankToNull(input.state),
     country: blankToNull(input.country),
+    other_details: blankToNull(input.other_details),
     status: input.status?.trim() || 'ACTIVE',
     // The owner pair is resolved by resolveCompanyManager, so both columns are already validated.
     account_manager_id: input.manager?.account_manager_id ?? null,

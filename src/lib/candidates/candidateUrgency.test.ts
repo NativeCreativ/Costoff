@@ -21,7 +21,7 @@ describe('candidateUrgency', () => {
   });
 
   it('is urgent with an offer and a short notice period', () => {
-    expect(candidateUrgency({ offer_in_hand: true, offer_doj: null, availability: '15 Days' }, today)?.level).toBe('high');
+    expect(candidateUrgency({ offer_in_hand: true, offer_doj: null, availability: '0-15 Days' }, today)?.level).toBe('high');
   });
 
   it('is medium for a far-off or unknown joining date', () => {

@@ -38,6 +38,7 @@ export function CandidateEditModal({
         submitLabel="Save Candidate Updates"
         pendingLabel="Saving…"
         isSubmitting={isSubmitting}
+        savedCandidate={editingCandidate}
         // extraContent={
         //   <div className="rounded-lg border border-[#bfdbfe] bg-[#eff6ff] p-3.5">
         //     <label className="mb-1.5 block text-[0.82rem] font-bold text-[#1e40af]">Current Pipeline Stage Tag (27 Stages)</label>

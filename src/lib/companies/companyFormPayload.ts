@@ -21,6 +21,7 @@ export function companyFormValuesToPayload(values: CompanyFormValues): CompanyFo
     city: values.city,
     state: values.state,
     country: values.country,
+    other_details: values.other_details,
     status: values.status,
     spocs: values.spocs.filter((spoc) => spoc.name.trim()),
   };

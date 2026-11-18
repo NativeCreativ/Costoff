@@ -508,6 +508,7 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pen
           }}
         />
         <FormTextArea label="Comments" rows={2} placeholder="Anything else the team should know about this demand" register={register('comments')} error={errors.comments?.message} />
+        <FormTextArea label="Other Details" rows={2} placeholder={'Anything not covered by the fields above, one per line as "Label: value"'} register={register('other_details')} error={errors.other_details?.message} />
         <div>
           <Controller
             name="required_skills"

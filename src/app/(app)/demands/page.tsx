@@ -25,7 +25,7 @@ import { toDemandCertifications, toFormWorkModes } from '@/components/demands/de
 const emptyDemandForm: DemandFormState = {
   request_id: '', company_id: '', end_client_id: '', demand_type: '', job_title: '', skill_description: '',
   role_category: 'Full Time', priority: 'High', status: 'Open',
-  engagement_type: '', client_demand_id: '', intermediary_partner: '', shift_timings: '', comments: '', customer_jd: '',
+  engagement_type: '', client_demand_id: '', intermediary_partner: '', shift_timings: '', comments: '', other_details: '', customer_jd: '',
   customer_jd_file_url: '', customer_jd_file_name: '', client_spoc_ids: [],
   total_experience: '', relevant_experience: '', certifications: [],
   experience_levels: [], required_skills: [], skills_category_id: '', work_modes: ['Work On Site'],
@@ -179,6 +179,7 @@ export default function DemandsPage() {
       intermediary_partner: item.intermediary_partner || '',
       shift_timings: item.shift_timings || '',
       comments: item.comments || '',
+      other_details: item.other_details || '',
       customer_jd: item.customer_jd || '',
       customer_jd_file_url: item.customer_jd_file_url || '',
       customer_jd_file_name: item.customer_jd_file_name || '',
