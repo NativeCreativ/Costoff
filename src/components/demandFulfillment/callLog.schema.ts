@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { CANDIDATE_SOURCE_VALUES, NOTICE_PERIOD_VALUES, isValidPhone } from '@/components/candidates/candidate.schema';
 
-export const CALL_OUTCOME_VALUES = ['fit', 'not_fit'] as const;
+/** "demand_match" was "fit" before review batch 3 (Nov 2026). */
+export const CALL_OUTCOME_VALUES = ['demand_match', 'not_fit'] as const;
 export type CallOutcome = (typeof CALL_OUTCOME_VALUES)[number];
+export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = { demand_match: 'Demand Match', not_fit: 'Not fit' };
 
 /** Fitment Fail Reasons offered on a "Not fit" call. "Other" lets the caller type their own. */
 export const FITMENT_FAIL_REASONS = [
@@ -38,9 +40,11 @@ export const callLogSchema = z
   .object({
     candidate_id: z.string().uuid().nullable().optional(),
     new_candidate: callNewCandidateSchema.nullable().optional(),
-    outcome: z.enum(CALL_OUTCOME_VALUES, { message: 'Say whether the candidate fits' }),
+    outcome: z.enum(CALL_OUTCOME_VALUES, { message: 'Say whether the candidate matches the demand' }),
     fail_reason: z.string().trim().max(100).nullable().optional(),
     notes: z.string().trim().max(5000).nullable().optional(),
+    /** Skill group discussed on the call (skill_categories.id). */
+    skill_group_id: z.string().uuid().nullable().optional(),
   })
   .superRefine((v, ctx) => {
     if (!v.candidate_id === !v.new_candidate) {
@@ -51,6 +55,21 @@ export const callLogSchema = z
     }
   });
 export type CallLogValues = z.infer<typeof callLogSchema>;
+
+/** PUT /api/demands/[requestId]/call-logs/[callId] — edit a logged call (any time, for now). */
+export const callLogUpdateSchema = z
+  .object({
+    outcome: z.enum(CALL_OUTCOME_VALUES, { message: 'Say whether the candidate matches the demand' }),
+    fail_reason: z.string().trim().max(100).nullable().optional(),
+    notes: z.string().trim().max(5000).nullable().optional(),
+    skill_group_id: z.string().uuid().nullable().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.outcome === 'not_fit' && (!v.fail_reason || v.fail_reason === 'Other')) {
+      ctx.addIssue({ code: 'custom', path: ['fail_reason'], message: 'Give the fitment fail reason' });
+    }
+  });
+export type CallLogUpdateValues = z.infer<typeof callLogUpdateSchema>;
 
 /* ─────────────── Instruction Log ─────────────── */
 

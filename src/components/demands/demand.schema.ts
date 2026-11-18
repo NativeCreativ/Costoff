@@ -93,6 +93,10 @@ export const demandSchema = z
      *  list back to empty — see demand.service.ts's toDemandPayload for how this becomes an
      *  explicit `interview_rounds: []` in the API payload. */
     interview_rounds_cleared: z.boolean().optional(),
+    /** Review batch 4: create as a draft ("Save as draft") — visible to its creator only. */
+    is_draft: z.boolean().optional(),
+    /** Review batch 4: submit a draft to the team (edit form of a draft demand). */
+    publish: z.boolean().optional(),
   });
 
 export type DemandFormValues = z.infer<typeof demandSchema>;
@@ -194,6 +198,10 @@ export const demandApiSchema = z.object({
   spoc_profile_id: z.string().nullable().optional(),
   recruiter_ids: z.array(z.string()).default([]),
   interview_rounds: interviewRoundsListSchema,
+  /** POST only: save as a draft instead of publishing. */
+  is_draft: z.boolean().optional(),
+  /** PUT only: publish a draft (it becomes visible to the team and the team is notified). */
+  publish: z.boolean().optional(),
 });
 
 export type DemandApiValues = z.infer<typeof demandApiSchema>;

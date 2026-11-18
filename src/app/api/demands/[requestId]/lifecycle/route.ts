@@ -1,8 +1,9 @@
+import { withoutPanCiphertext } from '@/lib/candidates/panCrypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { canViewDemand } from '@/lib/auth/demandPermissions';
-import { canManageDemandPipeline, canUploadProfilesToDemand } from '@/lib/auth/demandFulfillmentPermissions';
+import { canManageDemandPipeline, canReviewSourcedProfile, canUploadProfilesToDemand } from '@/lib/auth/demandFulfillmentPermissions';
 import { DEMANDS_WITH_AGING_BASE } from '@/lib/demands/demandAgingQuery';
 
 function toNum(v: unknown) {
@@ -51,7 +52,7 @@ export async function GET(
       compensation_max: demandRows[0].compensation_max ?? null,
     };
 
-    if (!canViewDemand({ role: currentUser.role, id: currentUser.userId }, { contact_profile_id: demand.contact_profile_id, spoc_profile_id: demand.spoc_profile_id, recruiterIds: demand.recruiter_ids })) {
+    if (!canViewDemand({ role: currentUser.role, id: currentUser.userId }, { contact_profile_id: demand.contact_profile_id, spoc_profile_id: demand.spoc_profile_id, recruiterIds: demand.recruiter_ids, is_draft: demand.is_draft, created_by: demand.created_by })) {
       return NextResponse.json({ error: 'You do not have permission to view this demand' }, { status: 403 });
     }
 
@@ -77,7 +78,8 @@ export async function GET(
           ...s,
           candidates: s.candidates
             ? {
-                ...s.candidates,
+                // The PAN ciphertext never leaves the server.
+                ...withoutPanCiphertext(s.candidates),
                 current_ctc: toNum(s.candidates.current_ctc),
                 expected_ctc: toNum(s.candidates.expected_ctc),
               }
@@ -193,6 +195,11 @@ export async function GET(
       // Narrower question: may the viewer ADD a profile? True for any Recruiter even when not
       // assigned (canUploadProfilesToDemand), so the Pipeline shows "Add Candidate" to them
       // while every other pipeline control stays behind can_manage_pipeline.
+      // Sourcing review (batch 4): may the viewer approve / reject submitted profiles?
+      can_review_profiles: canReviewSourcedProfile(
+        { role: currentUser.role, id: currentUser.userId },
+        { created_by: demand.created_by, contact_profile_id: demand.contact_profile_id, spoc_profile_id: demand.spoc_profile_id },
+      ),
       can_upload_profiles: canUploadProfilesToDemand(
         { role: currentUser.role, id: currentUser.userId },
         { created_by: demand.created_by, contact_profile_id: demand.contact_profile_id, spoc_profile_id: demand.spoc_profile_id },

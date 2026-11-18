@@ -17,6 +17,7 @@ import {
   updateSuperAdminSettings,
   toggleOnboardingDocument,
   toggleBgvChecklistItem,
+  reviewSourcedProfile,
   type AssignDemandPayload,
   type AddDemandCandidatePayload,
   type AddSubmissionEventPayload,
@@ -25,6 +26,7 @@ import {
   type UpdateOnboardingPayload,
 } from '@/services/demandFulfillment.service';
 import type { SuperAdminSettingsPatch } from '@/components/types';
+import { useToast } from '@/components/ui/Toast';
 
 async function invalidateDemand(queryClient: ReturnType<typeof useQueryClient>, requestId: string) {
   await Promise.all([
@@ -224,5 +226,21 @@ export function useToggleBgvChecklistItemMutation() {
       queryClient.invalidateQueries({ queryKey: queryKeys.superAdminSettingsDF });
       queryClient.invalidateQueries({ queryKey: queryKeys.superAdminSettingsDFIncludeInactive });
     },
+  });
+}
+
+/** Sourcing review: Submit / Submit as Active / Approve / Reject. Refreshes the pipeline. */
+export function useReviewSourcedProfileMutation(requestId: string) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ dcId, action, remark }: { dcId: string; action: 'submit' | 'submit_as_active' | 'approve' | 'reject'; remark?: string }) =>
+      reviewSourcedProfile(requestId, dcId, { action, remark }),
+    onSuccess: (_data, vars) => {
+      const done = { submit: 'Submitted for review', submit_as_active: 'Submitted as Active', approve: 'Approved — moved to Shortlist', reject: 'Rejected — sent back to the recruiter' };
+      toast.success(done[vars.action]);
+      return queryClient.invalidateQueries({ queryKey: ['demands', requestId] });
+    },
+    onError: (err: any) => toast.error('Action failed', err?.response?.data?.error || err?.message || 'Please try again'),
   });
 }

@@ -50,6 +50,9 @@ interface DemandFormProps {
   onSubmit: (values: DemandFormState) => void;
   onCancel: () => void;
   submitLabel: string;
+  /** A second save button (review batch 4: "Save as draft" / "Submit to team"). It validates
+   *  like the main button and calls onSubmit with these extra values merged in. */
+  secondaryAction?: { label: string; values: Partial<DemandFormState> };
   pendingLabel?: string;
   isSubmitting?: boolean;
   idFieldsReadOnlyPlaceholders?: boolean;
@@ -91,7 +94,7 @@ function SectionCard({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pendingLabel, isSubmitting, idFieldsReadOnlyPlaceholders, currentUserId, currentUserRole, initialAmLabel, initialSpocLabel, initialRecruiterOptions, editingDemand, initialCompanyLabel, onQuickCreate, clientLockedByDrawer, demandRounds = [], demandSpocId, preserveRoundsOnNextCompanyChange }: DemandFormProps) {
+export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, secondaryAction, pendingLabel, isSubmitting, idFieldsReadOnlyPlaceholders, currentUserId, currentUserRole, initialAmLabel, initialSpocLabel, initialRecruiterOptions, editingDemand, initialCompanyLabel, onQuickCreate, clientLockedByDrawer, demandRounds = [], demandSpocId, preserveRoundsOnNextCompanyChange }: DemandFormProps) {
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<DemandFormState>({
     resolver: zodResolver(demandSchema),
     defaultValues,
@@ -762,6 +765,17 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, pen
 
       <div className="flex justify-end gap-2.5">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="h-auto rounded-md border-[#e2e8f0] bg-white px-4 py-2 font-normal">Cancel</Button>
+        {secondaryAction && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            className="h-auto rounded-md border-[#2563eb] bg-white px-4 py-2 font-semibold text-[#2563eb]"
+            onClick={handleSubmit((values) => submitWithRoundsSnapshot({ ...values, ...secondaryAction.values }))}
+          >
+            {secondaryAction.label}
+          </Button>
+        )}
         <Button type="submit" disabled={isSubmitting} className="h-auto rounded-md px-4 py-2 font-semibold">{isSubmitting ? (pendingLabel ?? submitLabel) : submitLabel}</Button>
       </div>
     </form>

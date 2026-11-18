@@ -54,6 +54,11 @@ export function DemandTableRow({ item, canEdit, canDelete, deleteDisabledReason,
         >
           {item.request_id}
         </button>
+        {item.is_draft && (
+          <Badge title="Saved, not yet submitted — only you (and the Delivery Head) can see it" className="ml-1.5 rounded border-transparent bg-[#fef3c7] px-1.5 py-0.5 align-middle text-[0.68rem] font-semibold text-[#92400e] hover:bg-[#fef3c7]">
+            Draft
+          </Badge>
+        )}
         {item.cloned_from_demand_id && (
           <Badge
             title={`Cloned from ${item.cloned_from_request_id ?? 'a Closed Demand'}${item.cloned_by_name ? ` by ${item.cloned_by_name}` : ''}`}

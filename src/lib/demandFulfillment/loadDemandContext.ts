@@ -10,6 +10,8 @@ export interface DemandContext {
   spoc_profile_id: string | null;
   recruiterIds: string[];
   technology_stack: string[];
+  /** Saved, not yet submitted (review batch 4). canViewDemand hides it from everyone else. */
+  is_draft: boolean;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -32,6 +34,7 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
       contact_profile_id: true,
       spoc_profile_id: true,
       technology_stack: true,
+      is_draft: true,
       demand_ta_allocations: { select: { ta_id: true } },
     },
   });
@@ -47,5 +50,6 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
     spoc_profile_id: demand.spoc_profile_id,
     recruiterIds: demand.demand_ta_allocations.map((a) => a.ta_id).filter((id): id is string => !!id),
     technology_stack: demand.technology_stack ?? [],
+    is_draft: demand.is_draft,
   };
 }

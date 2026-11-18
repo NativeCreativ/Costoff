@@ -106,7 +106,8 @@ export function DemandFormModal({
         defaultValues={demandForm}
         onSubmit={(values) => { setDemandForm(values); handleCreateDemand(values); }}
         onCancel={() => setShowDemandModal(false)}
-        submitLabel={isClone ? 'Create Cloned Demand' : 'Save Demand'}
+        submitLabel={isClone ? 'Create Cloned Demand' : 'Submit Demand'}
+        secondaryAction={isClone ? undefined : { label: 'Save as draft', values: { is_draft: true } }}
         pendingLabel="Creating…"
         isSubmitting={isSubmitting}
         idFieldsReadOnlyPlaceholders

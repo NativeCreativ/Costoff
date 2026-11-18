@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { CANDIDATE_SOURCE_VALUES, NOTICE_PERIOD_VALUES } from '@/components/candidates/candidate.schema';
 import { useCandidatesQuery } from '@/queries/candidates/useCandidatesQuery';
 import { useLogDemandCallMutation } from '@/queries/demandFulfillment/useCallLogAndInstructions';
+import { useSkillsLibraryQuery } from '@/queries/settings/useSkillsLibraryQueries';
 import {
   FITMENT_FAIL_REASONS,
   callLogSchema,
@@ -32,11 +33,22 @@ const EMPTY_CANDIDATE: CallNewCandidate = {
 
 /**
  * Log a call about a candidate for this demand. The candidate is someone already in our database
- * (search) or new (quick details — saved to the candidate database either way). "Fit" moves them
- * into Sourcing; "Not fit" asks for the Fitment Fail Reason.
+ * (search) or new (quick details — saved to the candidate database either way). "Demand Match"
+ * stores the call and hands over to the full candidate form (onDemandMatch), which lists the
+ * candidate in Sourcing once saved; "Not fit" asks for the Fitment Fail Reason.
  */
-export function LogCallModal({ requestId, onClose }: { requestId: string; onClose: () => void }) {
+export function LogCallModal({
+  requestId,
+  onClose,
+  onDemandMatch,
+}: {
+  requestId: string;
+  onClose: () => void;
+  onDemandMatch: (match: { callId: string; candidateId: string; canEditCandidate: boolean }) => void;
+}) {
   const toast = useToast();
+  const library = useSkillsLibraryQuery();
+  const [skillGroupId, setSkillGroupId] = useState('');
   const logCall = useLogDemandCallMutation(requestId);
   const [mode, setMode] = useState<'existing' | 'new'>('new');
   const [search, setSearch] = useState('');
@@ -61,6 +73,7 @@ export function LogCallModal({ requestId, onClose }: { requestId: string; onClos
       outcome,
       fail_reason: outcome === 'not_fit' ? (reason === 'Other' ? otherReason.trim() : reason) || null : null,
       notes: notes.trim() || null,
+      skill_group_id: skillGroupId || null,
     };
     const parsed = callLogSchema.safeParse(payload);
     if (!parsed.success) {
@@ -71,9 +84,12 @@ export function LogCallModal({ requestId, onClose }: { requestId: string; onClos
     logCall.mutate(parsed.data, {
       onSuccess: (res) => {
         const who = res.reused_existing_candidate ? ' (matched an existing profile)' : '';
-        if (res.moved_to_sourcing) toast.success('Call logged', `Candidate moved to Sourcing${who}.`);
-        else if (res.already_in_pipeline) toast.success('Call logged', `This candidate is already in the pipeline${who}.`);
-        else toast.success('Call logged', `Profile kept in the candidate database${who}.`);
+        if (parsed.data.outcome === 'demand_match') {
+          toast.success('Demand Match logged', `Complete the candidate details to add them to Sourcing${who}.`);
+          onDemandMatch({ callId: res.call.id, candidateId: res.candidate_id, canEditCandidate: res.can_edit_candidate });
+        } else {
+          toast.success('Call logged', `Profile kept in the candidate database${who}.`);
+        }
         onClose();
       },
     });
@@ -141,15 +157,23 @@ export function LogCallModal({ requestId, onClose }: { requestId: string; onClos
         )}
 
         <div>
-          <div className="mb-1 text-[0.8rem] font-semibold text-[#475569]">Does the candidate fit this demand? *</div>
+          <label className="mb-1 block text-[0.8rem] font-semibold text-[#475569]" htmlFor="call-skill-group">Skill Group</label>
+          <select id="call-skill-group" className="button-select h-9 w-full text-[0.8rem]" value={skillGroupId} onChange={(e) => setSkillGroupId(e.target.value)}>
+            <option value="">Select a skill group (optional)</option>
+            {(library.data ?? []).map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <div className="mb-1 text-[0.8rem] font-semibold text-[#475569]">Does the candidate match this demand? *</div>
           <div className="flex gap-2">
             <button
               type="button"
-              aria-pressed={outcome === 'fit'}
-              onClick={() => setOutcome('fit')}
-              className={cn('flex-1 rounded-md border px-3 py-2 text-[0.82rem] font-semibold', outcome === 'fit' ? 'border-[#16a34a] bg-[#f0fdf4] text-[#15803d]' : 'border-[#e2e8f0] bg-white text-[#475569]')}
+              aria-pressed={outcome === 'demand_match'}
+              onClick={() => setOutcome('demand_match')}
+              className={cn('flex-1 rounded-md border px-3 py-2 text-[0.82rem] font-semibold', outcome === 'demand_match' ? 'border-[#16a34a] bg-[#f0fdf4] text-[#15803d]' : 'border-[#e2e8f0] bg-white text-[#475569]')}
             >
-              Fit — move to Sourcing
+              Demand Match
             </button>
             <button
               type="button"

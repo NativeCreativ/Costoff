@@ -78,6 +78,9 @@ interface DemandVisibilityFields {
   contact_profile_id?: string | null;
   spoc_profile_id?: string | null;
   recruiterIds?: string[];
+  /** Draft (saved, not submitted): only its creator and Super Admin may see it. */
+  is_draft?: boolean | null;
+  created_by?: string | null;
 }
 
 /**
@@ -90,6 +93,7 @@ interface DemandVisibilityFields {
  */
 export function canViewDemand(actor: DemandActor, demand: DemandVisibilityFields): boolean {
   if (!actor.role) return false;
+  if (demand.is_draft && actor.role !== 'super_admin') return !!actor.id && demand.created_by === actor.id;
   if (DEMAND_VIEW_ALL_ROLES.includes(actor.role)) return true;
   if (actor.role === 'account_manager') return !!actor.id && demand.contact_profile_id === actor.id;
   if (actor.role === 'spoc') return !!actor.id && demand.spoc_profile_id === actor.id;

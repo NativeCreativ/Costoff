@@ -100,6 +100,7 @@ model skill_categories {
   demands     demands[]
   candidates  candidates[]
   demand_type_skill_categories demand_type_skill_categories[]
+  demand_call_logs demand_call_logs[]
 }
 
 /// Classification of a skill (Technical, Behavioural, Domain, …). Not a skill-group template.
@@ -329,6 +330,8 @@ model demands {
   shift_timings                                        String?                   @db.VarChar(255)
   comments                                             String?
   other_details                                        String?
+  /// Saved but not yet submitted: visible to its creator (and Super Admin) only.
+  is_draft                                             Boolean                   @default(false)
   /// The customer's exact JD, stored separately from the working skill_description.
   customer_jd                                          String?
   /// Uploaded Customer JD file (under public/uploads/jd). Independent of the pasted text.
@@ -680,8 +683,8 @@ model demand_call_logs {
   id            String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   demand_id     String       @db.Uuid
   candidate_id  String       @db.Uuid
-  /// CALL_OUTCOME_VALUES: fit | not_fit
-  outcome       String       @db.VarChar(10)
+  /// CALL_OUTCOME_VALUES: demand_match | not_fit
+  outcome       String       @db.VarChar(20)
   /// FITMENT_FAIL_REASONS (or free text via "Other"). Required when outcome = not_fit.
   fail_reason   String?      @db.VarChar(100)
   notes         String?
@@ -689,6 +692,12 @@ model demand_call_logs {
   submission_id String?      @db.Uuid
   created_by    String?      @db.Uuid
   created_at    DateTime     @default(now()) @db.Timestamptz(6)
+  /// Skill group discussed on the call (skill_categories.id).
+  skill_group_id String?     @db.Uuid
+  /// Last editor (FK to profiles in the DB; kept as a plain column here).
+  updated_by    String?      @db.Uuid
+  updated_at    DateTime?    @db.Timestamptz(6)
+  skill_categories skill_categories? @relation(fields: [skill_group_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   demands       demands      @relation(fields: [demand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   candidates    candidates   @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   submissions   submissions? @relation(fields: [submission_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -800,6 +809,13 @@ source                                         String?             @db.VarChar(2
   added_by                                       String?             @db.Uuid
   is_active                                      Boolean             @default(true)
   final_result                                   String?             @db.VarChar(20)
+  /// Sourcing review: 'rejected' when the AM / SPOC sent the profile back (status is sourced again).
+  review_state                                   String?             @db.VarChar(20)
+  review_remark                                  String?
+  /// FK to profiles in the DB; kept as a plain column here.
+  reviewed_by                                    String?             @db.Uuid
+  reviewed_at                                    DateTime?           @db.Timestamptz(6)
+  submitted_for_review_at                        DateTime?           @db.Timestamptz(6)
   interviews                                     interviews[]
   offers                                         offers[]
   onboardings                                    onboardings?

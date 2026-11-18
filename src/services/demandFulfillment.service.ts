@@ -419,13 +419,22 @@ export async function getDemandChangeLog(requestId: string): Promise<DemandChang
 
 export interface DemandCallLogEntry {
   id: string;
-  outcome: 'fit' | 'not_fit';
+  outcome: 'demand_match' | 'not_fit';
   fail_reason: string | null;
   notes: string | null;
   created_at: string;
+  updated_at: string | null;
+  updated_by_name: string | null;
   caller_name: string | null;
+  skill_group_id: string | null;
+  skill_group_name: string | null;
   candidate_id: string;
-  candidate: { full_name: string; phone: string | null; email: string | null; current_company: string | null; total_experience: string | null } | null;
+  /** May this user edit the call / add the candidate to Sourcing. */
+  can_edit: boolean;
+  candidate: {
+    full_name: string; phone: string | null; email: string | null; current_company: string | null; current_location: string | null;
+    total_experience: string | null; availability: string | null; expected_ctc: number | null; source: string | null;
+  } | null;
   moved_to_sourcing: boolean;
 }
 
@@ -434,7 +443,7 @@ export interface DemandCallSummaryRow {
   name: string;
   role: string;
   calls: number;
-  fit: number;
+  demand_match: number;
   not_fit: number;
 }
 
@@ -444,14 +453,30 @@ export async function getDemandCallLogs(requestId: string): Promise<{ calls: Dem
 }
 
 export interface LogDemandCallResult {
+  call: { id: string; outcome: string };
   candidate_id: string;
   reused_existing_candidate: boolean;
-  moved_to_sourcing: boolean;
-  already_in_pipeline: boolean;
+  /** Demand Match: whether this user may edit the candidate in the follow-up form. */
+  can_edit_candidate: boolean;
 }
 
 export async function logDemandCall(requestId: string, payload: unknown): Promise<LogDemandCallResult> {
   const { data } = await api.post(`/demands/${encodeURIComponent(requestId)}/call-logs`, payload);
+  return data;
+}
+
+export async function updateDemandCall(requestId: string, callId: string, payload: unknown): Promise<void> {
+  await api.put(`/demands/${encodeURIComponent(requestId)}/call-logs/${encodeURIComponent(callId)}`, payload);
+}
+
+export interface AddCallToSourcingResult {
+  moved_to_sourcing: boolean;
+  already_in_pipeline: boolean;
+}
+
+/** Demand Match follow-up: put the call's candidate into this demand's Sourcing. */
+export async function addCallCandidateToSourcing(requestId: string, callId: string): Promise<AddCallToSourcingResult> {
+  const { data } = await api.post(`/demands/${encodeURIComponent(requestId)}/call-logs/${encodeURIComponent(callId)}/add-to-sourcing`);
   return data;
 }
 
@@ -485,4 +510,13 @@ export async function saveDemandInstruction(
 
 export async function deleteDemandInstruction(requestId: string, id: string): Promise<void> {
   await api.delete(`/demands/${encodeURIComponent(requestId)}/instructions/${encodeURIComponent(id)}`);
+}
+
+/** Sourcing review (batch 4): submit a saved profile, or approve / reject a submitted one. */
+export async function reviewSourcedProfile(
+  requestId: string,
+  dcId: string,
+  payload: { action: 'submit' | 'submit_as_active' | 'approve' | 'reject'; remark?: string }
+): Promise<void> {
+  await api.post(`/demands/${encodeURIComponent(requestId)}/candidates/${encodeURIComponent(dcId)}/review`, payload);
 }

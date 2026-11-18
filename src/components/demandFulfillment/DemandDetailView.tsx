@@ -216,7 +216,7 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
             <CoreFact label="Type" value={demand.demand_type || '—'} />
             <CoreFact label="Category" value={demand.role_category || '—'} />
             <CoreFact label="Skill group" value={demand.skill_group_name || '—'} />
-            <CoreFact label="Status" value={demandStatusLabel(demand.status)} />
+            <CoreFact label="Status" value={demand.is_draft ? `Draft (not submitted) · ${demandStatusLabel(demand.status)}` : demandStatusLabel(demand.status)} />
           </div>
         )}
       </section>
@@ -259,6 +259,8 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
           canAssignAccountManager={canReassignDemandAccountManager(actor.role ?? '')}
           canManagePipeline={canManagePipeline}
           canUploadProfiles={canUploadProfiles}
+          canReviewProfiles={!!lifecycleQuery.data?.can_review_profiles}
+          currentUserId={currentUser?.id}
           canClose={canManageStatus}
           formDefaults={formDefaults}
         />

@@ -6,6 +6,7 @@ import {
   canAccessCandidate,
   accessibleDemandIdsForCandidate,
   loadCandidateAccessContext,
+  canEditCandidate,
 } from '@/lib/auth/candidatePermissions';
 import { canEditInterview, interviewEditBlockReason } from '@/lib/auth/interviewPermissions';
 import { recruiterProfileIds } from '@/lib/auth/recruiterRole';
@@ -139,6 +140,8 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
+      // Same rule the PUT /api/candidates route enforces, so forms can show or skip editing.
+      can_edit: canEditCandidate({ role: currentUser.role, id: currentUser.userId }, access),
       candidate: {
         ...withoutPanCiphertext(candidate),
         current_ctc: toNum(candidate.current_ctc),

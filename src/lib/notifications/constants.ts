@@ -6,7 +6,9 @@
  * copy and the wording lives in exactly one place.
  */
 
-export const NOTIFICATION_TYPES = ['demand_assigned'] as const;
+/** profile_submitted: a TA submitted a Sourcing profile for review (to the demand's AM / SPOC).
+ *  profile_reviewed: the AM / SPOC approved or rejected it (to whoever submitted it). */
+export const NOTIFICATION_TYPES = ['demand_assigned', 'profile_submitted', 'profile_reviewed'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** The entity kinds a notification can point at. Drives the UI's navigation target. */
@@ -16,7 +18,8 @@ export type NotificationEntityType = (typeof NOTIFICATION_ENTITY_TYPES)[number];
 /** Roles that get a notification bell in the header (spec §8): SPOC and Recruiter only.
  *  Deliberately excludes super_admin / account_manager / viewer — they perform the assignment,
  *  so they have nothing to be told about it. */
-export const NOTIFICATION_BELL_ROLES = ['spoc', 'ta'] as const;
+// Review batch 4 (Nov 2026): Account Managers get a bell too — profiles are submitted to them.
+export const NOTIFICATION_BELL_ROLES = ['spoc', 'ta', 'account_manager'] as const;
 
 /** Default page size for the dropdown feed. The spec asks for 5–6 initially. */
 export const NOTIFICATIONS_PAGE_SIZE = 6;

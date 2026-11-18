@@ -9,6 +9,8 @@ import {
   getDemandInstructions,
   logDemandCall,
   saveDemandInstruction,
+  updateDemandCall,
+  addCallCandidateToSourcing,
 } from '@/services/demandFulfillment.service';
 
 export function useDemandCallLogsQuery(requestId: string) {
@@ -35,6 +37,32 @@ export function useLogDemandCallMutation(requestId: string) {
       console.error('Error logging call:', err);
       toast.error('Log Failed', err?.response?.data?.error || err?.message || 'Failed to log the call');
     },
+  });
+}
+
+/** Edit a logged call. */
+export function useUpdateDemandCallMutation(requestId: string) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ callId, payload }: { callId: string; payload: unknown }) => updateDemandCall(requestId, callId, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.demandCallLogs(requestId) }),
+    onError: (err: any) => toast.error('Update Failed', err?.response?.data?.error || err?.message || 'Failed to update the call'),
+  });
+}
+
+/** Demand Match follow-up: the call's candidate goes into Sourcing. Refreshes the pipeline. */
+export function useAddCallToSourcingMutation(requestId: string) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (callId: string) => addCallCandidateToSourcing(requestId, callId),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['demands', requestId] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.lifecycle(requestId) }),
+      ]),
+    onError: (err: any) => toast.error('Could not add to Sourcing', err?.response?.data?.error || err?.message || 'Failed'),
   });
 }
 

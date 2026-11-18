@@ -119,6 +119,29 @@ export function canUpdateSelectionStatus(actor: FulfillmentActor, demand: Demand
   return false;
 }
 
+/**
+ * Approve / reject a profile a TA submitted from Sourcing (review batch 4): Super Admin, the
+ * demand's current AM, or its assigned SPOC — the same people who decide on Selection.
+ */
+export function canReviewSourcedProfile(actor: FulfillmentActor, demand: DemandOwnershipFields): boolean {
+  return canUpdateSelectionStatus(actor, demand);
+}
+
+/**
+ * Save edits to / submit a Sourcing profile: whoever manages the pipeline, or the person who
+ * uploaded it (an unassigned Recruiter may upload — canUploadProfilesToDemand — and must be
+ * able to submit what they uploaded).
+ */
+export function canSubmitSourcedProfile(
+  actor: FulfillmentActor,
+  demand: DemandOwnershipFields,
+  recruiterIds: string[],
+  submission: { added_by: string | null }
+): boolean {
+  if (canManageDemandPipeline(actor, demand, recruiterIds)) return true;
+  return actor.role === 'ta' && !!actor.id && submission.added_by === actor.id;
+}
+
 /** SPOC-specific: can only review/shortlist/comment on demands where they are the assigned SPOC. */
 export function isSpocForDemand(actor: FulfillmentActor, demand: DemandOwnershipFields): boolean {
   return actor.role === 'spoc' && !!actor.id && demand.spoc_profile_id === actor.id;

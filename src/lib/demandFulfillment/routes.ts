@@ -14,6 +14,8 @@ export const DEMAND_DETAIL_TABS = [
   { id: 'assign', label: 'Assign', phase: 'Assign' },
   // Not a lifecycle phase: customer instructions for the recruiters (Instruction Log).
   { id: 'instructions', label: 'Instructions', phase: 'Instructions' },
+  // Not a lifecycle phase: calls about candidates (review batch 3 — its own tab before Sourcing).
+  { id: 'call-log', label: 'Call Log', phase: 'Call Log' },
   { id: 'sourcing', label: 'Sourcing', phase: 'Sourcing' },
   { id: 'shortlist', label: 'Shortlist', phase: 'Shortlist' },
   { id: 'selection', label: 'Selection', phase: 'Selection' },

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { UserSelect } from '@/components/ui/UserSelect';
@@ -15,7 +16,8 @@ import { DemandInstructionsPanel } from './DemandInstructionsPanel';
 import { SearchExistingCandidateModal, CreateCandidateForDemandModal } from './AddCandidateModal';
 import { useDemandCandidatesQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
 import { UserPlus, UserSearch } from 'lucide-react';
-import { useChangeSubmissionStatusMutation, useScheduleInterviewMutation, useUpdateInterviewMutation } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
+import { useChangeSubmissionStatusMutation, useReviewSourcedProfileMutation, useScheduleInterviewMutation, useUpdateInterviewMutation } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
+import { SourcedCandidateModal } from './SourcedCandidateModal';
 import { useSpocProfilesQuery } from '@/queries/demands/useSpocProfilesQuery';
 import { useAmProfilesQuery } from '@/queries/demands/useAmProfilesQuery';
 import { useRecruiterProfilesQuery } from '@/queries/demands/useRecruiterProfilesQuery';
@@ -34,6 +36,11 @@ interface SubmissionRow {
   candidate_id?: string | null;
   current_status: string;
   sourcing_type?: string | null;
+  added_by?: string | null;
+  /** Sourcing review (batch 4): 'rejected' when the AM / SPOC sent it back. */
+  review_state?: string | null;
+  review_remark?: string | null;
+  submitted_for_review_at?: string | null;
   candidates?: { full_name?: string; email?: string | null } | null;
 }
 
@@ -67,6 +74,8 @@ export function DemandLifecyclePanels({
   canAssignAccountManager = false,
   canManagePipeline,
   canUploadProfiles,
+  canReviewProfiles = false,
+  currentUserId,
   canClose,
   formDefaults,
 }: {
@@ -83,6 +92,9 @@ export function DemandLifecyclePanels({
   canManagePipeline: boolean;
   /** May add profiles (Sourced) — wider than canManagePipeline for unassigned Recruiters. */
   canUploadProfiles: boolean;
+  /** AM / SPOC / Super Admin: approve or reject submitted Sourcing profiles. */
+  canReviewProfiles?: boolean;
+  currentUserId?: string;
   canClose: boolean;
   formDefaults: DemandFormState | null;
 }) {
@@ -110,11 +122,16 @@ export function DemandLifecyclePanels({
         interviews={interviews}
         canManage={canManagePipeline}
         canUpload={canUploadProfiles}
+        canReview={canReviewProfiles}
+        currentUserId={currentUserId}
       />
     );
   }
   if (activeTab === 'onboarding') {
     return <DemandOnboardingTab requestId={requestId} canManage={canManagePipeline} />;
+  }
+  if (activeTab === 'call-log') {
+    return <CallLogPanel requestId={requestId} />;
   }
   if (activeTab === 'instructions') {
     return <DemandInstructionsPanel requestId={requestId} />;
@@ -150,7 +167,8 @@ function DetailsPanel({ requestId, demand, canEdit, formDefaults }: { requestId:
     <DemandForm
       defaultValues={formDefaults}
       editingDemand={demand}
-      submitLabel="Save demand"
+      submitLabel={demand.is_draft ? 'Save draft' : 'Save demand'}
+      secondaryAction={demand.is_draft ? { label: 'Submit to team', values: { publish: true } } : undefined}
       pendingLabel="Saving…"
       isSubmitting={updateMutation.isPending}
       onCancel={() => undefined}
@@ -158,7 +176,7 @@ function DetailsPanel({ requestId, demand, canEdit, formDefaults }: { requestId:
         updateMutation.mutate(
           { id: demand.id, form: values },
           {
-            onSuccess: () => toast.success('Demand updated'),
+            onSuccess: () => toast.success(values.publish ? 'Demand submitted — the team can see it now' : 'Demand updated'),
             onError: () => toast.error('Save failed', 'Could not update this demand'),
           }
         );
@@ -310,6 +328,8 @@ function CandidatePhasePanel({
   interviews,
   canManage,
   canUpload,
+  canReview,
+  currentUserId,
 }: {
   requestId: string;
   phase: 'sourcing' | 'shortlist' | 'selection';
@@ -317,7 +337,15 @@ function CandidatePhasePanel({
   interviews: InterviewRow[];
   canManage: boolean;
   canUpload: boolean;
+  canReview: boolean;
+  currentUserId?: string;
 }) {
+  const review = useReviewSourcedProfileMutation(requestId);
+  const [viewing, setViewing] = useState<{ candidateId: string; editable: boolean } | null>(null);
+  const [rejecting, setRejecting] = useState<{ id: string; name: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  // Saving / submitting a Sourcing profile: the pipeline team, or whoever uploaded it.
+  const canSubmitRow = (row: SubmissionRow) => canManage || (!!currentUserId && row.added_by === currentUserId);
   const [addMode, setAddMode] = useState<'existing' | 'new' | null>(null);
   const showUpload = phase === 'sourcing' && canUpload;
   // The add modals report the Active/Backup cap; only fetched where the buttons show.
@@ -374,8 +402,37 @@ function CandidatePhasePanel({
       {addMode === 'new' && (
         <CreateCandidateForDemandModal requestId={requestId} cap={cap} onClose={() => setAddMode(null)} onAdded={refreshAfterAdd} />
       )}
-      {/* Call Log lives on Sourcing: calls are how profiles are found (a "Fit" call adds one here). */}
-      {phase === 'sourcing' && <CallLogPanel requestId={requestId} />}
+      {viewing && (
+        <SourcedCandidateModal requestId={requestId} candidateId={viewing.candidateId} editable={viewing.editable} onClose={() => setViewing(null)} />
+      )}
+      {rejecting && (
+        <Modal title={`Reject ${rejecting.name}`} subtitle="The recruiter sees this reason and can fix the profile and submit again." onClose={() => setRejecting(null)} closeDisabled={review.isPending}>
+          <div className="flex flex-col gap-3">
+            <Textarea
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Why is this profile rejected?"
+              className="w-full resize-y rounded-md border-[#e2e8f0] px-2.5 py-1.5 text-[0.82rem] shadow-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setRejecting(null)} disabled={review.isPending}>Cancel</Button>
+              <Button
+                type="button"
+                disabled={review.isPending || !rejectReason.trim()}
+                onClick={() => review.mutate({ dcId: rejecting.id, action: 'reject', remark: rejectReason.trim() }, { onSuccess: () => setRejecting(null) })}
+              >
+                {review.isPending ? 'Rejecting…' : 'Reject profile'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {phase === 'sourcing' && rows.some((r) => r.current_status === 'submitted_to_spoc') && canReview && (
+        <p className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-1.5 text-[0.78rem] text-[#1e40af]">
+          {rows.filter((r) => r.current_status === 'submitted_to_spoc').length} profile(s) waiting for your approval.
+        </p>
+      )}
       {rows.length === 0 && <p className="text-[0.85rem] text-[#94a3b8]">No candidates in this phase.</p>}
       {rows.map((row) => {
         const local = draft[row.id] || { date: '', time: '', status: 'Completed', comment: '', type: 'Technical', mode: 'Video', location: 'Teams', result: 'pass' };
@@ -384,13 +441,46 @@ function CandidatePhasePanel({
           <div key={row.id} className="rounded-md border border-[#e2e8f0] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div className="font-semibold text-[#0f172a]">{row.candidates?.full_name || 'Candidate'}</div>
+                <button
+                  type="button"
+                  className="font-semibold text-[#2563eb] hover:underline"
+                  onClick={() => row.candidate_id && setViewing({
+                    candidateId: row.candidate_id,
+                    editable: phase === 'sourcing' && row.current_status === 'sourced' && canSubmitRow(row),
+                  })}
+                >
+                  {row.candidates?.full_name || 'Candidate'}
+                </button>
                 <div className="text-[0.75rem] text-[#64748b]">
-                  {row.current_status.replace(/_/g, ' ')} · {row.sourcing_type === 'backup' ? 'Backup' : 'Active'}
+                  {phase === 'sourcing'
+                    ? row.current_status === 'submitted_to_spoc' ? 'Submitted — waiting for AM / SPOC' : row.review_state === 'rejected' ? 'Rejected by AM / SPOC' : 'Saved (not submitted)'
+                    : row.current_status.replace(/_/g, ' ')}
+                  {' · '}{row.sourcing_type === 'backup' ? 'Backup' : 'Active'}
                   {interview ? ` · ${interview.interview_type || '—'} · ${interview.mode || '—'} · ${interview.interview_location || '—'}` : ''}
                 </div>
+                {phase === 'sourcing' && row.review_state === 'rejected' && row.current_status === 'sourced' && row.review_remark && (
+                  <div className="mt-1 rounded bg-[#fef2f2] px-2 py-1 text-[0.74rem] text-[#b91c1c]">Reason: {row.review_remark}</div>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
+                {phase === 'sourcing' && row.current_status === 'sourced' && canSubmitRow(row) && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => row.candidate_id && setViewing({ candidateId: row.candidate_id, editable: true })}>Edit details</Button>
+                    {row.sourcing_type === 'backup' ? (
+                      <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'submit_as_active' })}>Submit as Active</Button>
+                    ) : (
+                      <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'submit' })}>
+                        {row.review_state === 'rejected' ? 'Re-submit' : 'Submit'}
+                      </Button>
+                    )}
+                  </>
+                )}
+                {phase === 'sourcing' && row.current_status === 'submitted_to_spoc' && canReview && (
+                  <>
+                    <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'approve' })}>Approve</Button>
+                    <Button size="sm" variant="outline" disabled={review.isPending} onClick={() => { setRejectReason(''); setRejecting({ id: row.id, name: row.candidates?.full_name || 'this candidate' }); }}>Reject</Button>
+                  </>
+                )}
                 {canManage && (
                   <Button
                     size="sm"
@@ -400,9 +490,6 @@ function CandidatePhasePanel({
                   >
                     Mark {row.sourcing_type === 'backup' ? 'Active' : 'Backup'}
                   </Button>
-                )}
-                {canManage && phase === 'sourcing' && (
-                  <Button size="sm" onClick={() => move(row.id, 'shortlisted_internal')}>Approve to shortlist</Button>
                 )}
                 {canManage && phase === 'shortlist' && (
                   <>

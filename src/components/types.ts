@@ -33,6 +33,8 @@ export interface Demand {
   shift_timings?: string | null;
   comments?: string | null;
   other_details?: string | null;
+  /** Saved, not yet submitted (review batch 4). */
+  is_draft?: boolean;
   customer_jd?: string | null;
   /** Uploaded Customer JD file (url under /uploads/jd/) and its original name. */
   customer_jd_file_url?: string | null;

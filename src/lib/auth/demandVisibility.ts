@@ -2,7 +2,26 @@ import { Prisma } from '@/generated/prisma/client';
 import { rawIdentifier } from '@/lib/auth/rawSqlIdentifier';
 import type { SessionPayload } from '@/lib/auth/jwt';
 import { DEMAND_VIEW_ALL_ROLES } from '@/lib/auth/demandPermissions';
+/**
+ * Draft demands (saved, not yet submitted — review batch 4) are visible to their creator and to
+ * Super Admin only. ANDed into every list scope below except Super Admin's.
+ */
+function draftVisibleClause(user: SessionPayload, alias: string): Prisma.Sql {
+  const a = rawIdentifier(alias);
+  return Prisma.sql`(${a}.is_draft = false OR ${a}.created_by = ${user.userId}::uuid)`;
+}
+
+function withDraftRule(user: SessionPayload, alias: string, condition: Prisma.Sql | null): Prisma.Sql | null {
+  if (user.role === 'super_admin') return condition;
+  const draft = draftVisibleClause(user, alias);
+  return condition ? Prisma.sql`(${condition} AND ${draft})` : draft;
+}
+
 export function buildDemandVisibilityCondition(user: SessionPayload, alias = 'v'): Prisma.Sql | null {
+  return withDraftRule(user, alias, roleVisibilityCondition(user, alias));
+}
+
+function roleVisibilityCondition(user: SessionPayload, alias: string): Prisma.Sql | null {
   if (DEMAND_VIEW_ALL_ROLES.includes(user.role)) return null;
 
   const a = rawIdentifier(alias);
@@ -49,8 +68,10 @@ export function buildAssignedToMeCondition(user: SessionPayload, alias = 'v'): P
  * buildDemandManageableCondition except a Recruiter is not narrowed to their allocations.
  */
 export function buildDemandUploadableCondition(user: SessionPayload, alias = 'v'): Prisma.Sql | null {
-  if (user.role === 'ta') return null;
-  return buildDemandManageableCondition(user, alias);
+  // Profiles go only to submitted (non-draft) demands.
+  const notDraft = Prisma.sql`${rawIdentifier(alias)}.is_draft = false`;
+  const scope = user.role === 'ta' ? null : buildDemandManageableCondition(user, alias);
+  return scope ? Prisma.sql`(${scope} AND ${notDraft})` : notDraft;
 }
 
 /**
@@ -59,8 +80,10 @@ export function buildDemandUploadableCondition(user: SessionPayload, alias = 'v'
  * aging table describe their own work, exactly as before they could see the rest.
  */
 export function buildDashboardDemandCondition(user: SessionPayload, alias = 'v'): Prisma.Sql | null {
-  if (user.role === 'ta') return buildAssignedToMeCondition(user, alias);
-  return buildDemandVisibilityCondition(user, alias);
+  // Drafts are not live work yet, so no dashboard or report counts them — for anyone.
+  const notDraft = Prisma.sql`${rawIdentifier(alias)}.is_draft = false`;
+  const scope = user.role === 'ta' ? buildAssignedToMeCondition(user, alias) : roleVisibilityCondition(user, alias);
+  return scope ? Prisma.sql`(${scope} AND ${notDraft})` : notDraft;
 }
 
 /**

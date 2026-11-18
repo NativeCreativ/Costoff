@@ -610,6 +610,8 @@ export async function POST(request: Request) {
             shift_timings: values.shift_timings?.trim() || null,
             comments: values.comments?.trim() || null,
             other_details: values.other_details?.trim() || null,
+            // Review batch 4: "Save as draft" keeps it private to its creator until submitted.
+            is_draft: values.is_draft === true,
             customer_jd: values.customer_jd?.trim() || null,
             customer_jd_file_url: values.customer_jd_file_url || null,
             customer_jd_file_name: values.customer_jd_file_url ? values.customer_jd_file_name?.trim() || null : null,
@@ -683,7 +685,8 @@ if (values.interview_rounds && values.interview_rounds.length > 0) {
         // (spec §6). "Previous" is empty for a brand-new Demand, so every assigned SPOC /
         // recruiter is newly assigned and gets exactly one notification; when neither is
         // assigned, nothing is created (spec §6).
-        const notificationsCreated = await notifyNewlyAssigned(tx, {
+        // A draft tells nobody yet: the team is notified when it is submitted (PUT publish).
+        const notificationsCreated = created.is_draft ? 0 : await notifyNewlyAssigned(tx, {
           demandId: created.id,
           requestId: created.request_id,
           jobTitle: created.job_title ?? created.skill_description,
@@ -794,6 +797,7 @@ export async function PUT(request: Request) {
         shift_timings: true,
         comments: true,
         other_details: true,
+        is_draft: true,
         technology_stack: true,
         experience_levels: true,
         work_mode: true,
@@ -1017,6 +1021,9 @@ export async function PUT(request: Request) {
     if (values.shift_timings !== undefined) updateData.shift_timings = values.shift_timings?.trim() || null;
     if (values.comments !== undefined) updateData.comments = values.comments?.trim() || null;
     if (values.other_details !== undefined) updateData.other_details = values.other_details?.trim() || null;
+    // Review batch 4: "Submit to team" publishes a draft. A published demand never goes back.
+    const publishing = values.publish === true && existingDemand.is_draft;
+    if (publishing) updateData.is_draft = false;
     if (values.customer_jd !== undefined) updateData.customer_jd = values.customer_jd?.trim() || null;
     if (values.customer_jd_file_url !== undefined) {
       updateData.customer_jd_file_url = values.customer_jd_file_url || null;
@@ -1146,11 +1153,12 @@ export async function PUT(request: Request) {
         // transaction just wrote, so an absent field (e.g. an edit that never mentioned
         // recruiters) resolves to the unchanged existing set and yields zero notifications
         // (spec §5/§7 idempotency, §7 "unchanged edit must not duplicate").
-        const notificationsCreated = await notifyNewlyAssigned(tx, {
+        // Still a draft: nobody is told yet. Publishing: everyone assigned is new to it.
+        const notificationsCreated = updated.is_draft ? 0 : await notifyNewlyAssigned(tx, {
           demandId: id,
           requestId: updated.request_id,
           jobTitle: updated.job_title ?? updated.skill_description,
-          previous: previousAssignment,
+          previous: publishing ? { spocId: null, recruiterIds: [] } : previousAssignment,
           next: {
             spocId: updated.spoc_profile_id ?? null,
             recruiterIds: nextRecruiterIds !== undefined ? nextRecruiterIds : previousAssignment.recruiterIds,

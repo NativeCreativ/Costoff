@@ -248,3 +248,18 @@ export const onboardingStepTemplateListSchema = z.object({
     .max(100),
 });
 export type OnboardingStepTemplateListValues = z.infer<typeof onboardingStepTemplateListSchema>;
+
+/**
+ * POST /api/demands/[requestId]/candidates/[dcId]/review — the Sourcing review step (review
+ * batch 4). submit: TA sends a saved profile to the AM / SPOC (submit_as_active also turns a
+ * Backup profile Active, for re-submitting a backup once the client opens submissions).
+ * approve / reject: the AM / SPOC decides; a rejection needs a reason and sends the profile back.
+ */
+export const SOURCING_REVIEW_ACTIONS = ['submit', 'submit_as_active', 'approve', 'reject'] as const;
+export const sourcingReviewSchema = z
+  .object({
+    action: z.enum(SOURCING_REVIEW_ACTIONS),
+    remark: z.string().trim().max(2000).optional(),
+  })
+  .refine((v) => v.action !== 'reject' || !!v.remark, { path: ['remark'], message: 'Give a reason for the rejection' });
+export type SourcingReviewValues = z.infer<typeof sourcingReviewSchema>;

@@ -17,10 +17,11 @@ const newCandidate = {
 
 describe('call log schema', () => {
   it('needs exactly one of an existing or a new candidate', () => {
-    expect(callLogSchema.safeParse({ candidate_id: CANDIDATE_ID, outcome: 'fit' }).success).toBe(true);
-    expect(callLogSchema.safeParse({ new_candidate: newCandidate, outcome: 'fit' }).success).toBe(true);
-    expect(callLogSchema.safeParse({ outcome: 'fit' }).success).toBe(false);
-    expect(callLogSchema.safeParse({ candidate_id: CANDIDATE_ID, new_candidate: newCandidate, outcome: 'fit' }).success).toBe(false);
+    expect(callLogSchema.safeParse({ candidate_id: CANDIDATE_ID, outcome: 'demand_match' }).success).toBe(true);
+    expect(callLogSchema.safeParse({ new_candidate: newCandidate, outcome: 'demand_match' }).success).toBe(true);
+    expect(callLogSchema.safeParse({ outcome: 'demand_match' }).success).toBe(false);
+    expect(callLogSchema.safeParse({ candidate_id: CANDIDATE_ID, new_candidate: newCandidate, outcome: 'demand_match' }).success).toBe(false);
+    expect(callLogSchema.safeParse({ candidate_id: CANDIDATE_ID, outcome: 'fit' }).success).toBe(false);
   });
 
   it('needs a fail reason on a not-fit call, and real text for "Other"', () => {
@@ -30,8 +31,8 @@ describe('call log schema', () => {
   });
 
   it('only asks a new candidate for name and a valid phone', () => {
-    expect(callLogSchema.safeParse({ new_candidate: { ...newCandidate, phone: 'abc' }, outcome: 'fit' }).success).toBe(false);
-    expect(callLogSchema.safeParse({ new_candidate: { ...newCandidate, full_name: '' }, outcome: 'fit' }).success).toBe(false);
+    expect(callLogSchema.safeParse({ new_candidate: { ...newCandidate, phone: 'abc' }, outcome: 'demand_match' }).success).toBe(false);
+    expect(callLogSchema.safeParse({ new_candidate: { ...newCandidate, full_name: '' }, outcome: 'demand_match' }).success).toBe(false);
   });
 });
 

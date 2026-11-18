@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
-import { canManageDemandPipeline } from '@/lib/auth/demandFulfillmentPermissions';
+import { canManageDemandPipeline, canReviewSourcedProfile } from '@/lib/auth/demandFulfillmentPermissions';
 import { submissionStatusChangeSchema } from '@/components/demandFulfillment/demandFulfillment.schema';
 import { loadDemandContext } from '@/lib/demandFulfillment/loadDemandContext';
 import { checkSubmissionStatusTransition } from '@/lib/demandFulfillment/statusTransitions';
@@ -65,6 +65,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
     const { to_status, remark } = parsed.data;
+
+    // Review batch 4: leaving Sourcing for Shortlist is the AM / SPOC approval step. A Recruiter
+    // submits (POST …/review) and cannot approve their own profile through this route.
+    if (to_status === 'shortlisted_internal' && ['sourced', 'submitted_to_spoc'].includes(submission.current_status)
+      && !canReviewSourcedProfile({ role: currentUser.role, id: currentUser.userId }, demand)) {
+      return NextResponse.json({ error: 'The demand’s Account Manager or SPOC approves profiles into Shortlist' }, { status: 403 });
+    }
 
     const check = checkSubmissionStatusTransition(submission.current_status, to_status, remark);
     if (!check.allowed) {
