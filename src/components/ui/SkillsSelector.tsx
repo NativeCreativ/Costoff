@@ -11,6 +11,7 @@ import { SKILL_MAX_LENGTH } from '@/lib/skills';
 
 interface SkillsSelectorProps {
   label?: string;
+  categoryLabel?: string;
   required?: boolean;
   value: string[];
   onChange: (skills: string[]) => void;
@@ -28,6 +29,8 @@ interface SkillsSelectorProps {
   suggestedCategoryIds?: string[];
   /** Shown next to "Show all" so the user knows why the list is short (e.g. the type's name). */
   suggestedReason?: string;
+  /** When 'side-by-side', places Skill Group and Selected Skills next to each other. */
+  layout?: 'stacked' | 'side-by-side';
 }
 
 function sameSkill(a: string, b: string): boolean {
@@ -57,7 +60,7 @@ function isPointerDevice(): boolean {
  * with saved skills (including ones no longer in the library) renders correctly because nothing
  * is cross-checked against the library on the way in.
  */
-export function SkillsSelector({ label, required, value, onChange, error, categoryId, onCategoryChange, categoryPlaceholder, suggestedCategoryIds, suggestedReason }: SkillsSelectorProps) {
+export function SkillsSelector({ label, categoryLabel, required, value, onChange, error, categoryId, onCategoryChange, categoryPlaceholder, suggestedCategoryIds, suggestedReason, layout = 'stacked' }: SkillsSelectorProps) {
   const libraryQuery = useSkillsLibraryQuery();
   const toast = useToast();
   const listId = useId();
@@ -172,6 +175,129 @@ export function SkillsSelector({ label, required, value, onChange, error, catego
   };
 
   const showEmptyState = value.length === 0 && !!selectedCategory;
+
+  if (layout === 'side-by-side') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label htmlFor={`${listId}-category`} className="text-[0.8rem] font-semibold text-[#475569]">
+              {categoryLabel || label || 'Skill Group'}
+              {required && <span className="text-[#dc2626]"> *</span>}
+            </label>
+          </div>
+          <FormSelect
+            small
+            placeholder={libraryQuery.isLoading ? 'Loading skill groups…' : (categoryPlaceholder ?? 'Select a skill group (optional)')}
+            disabled={libraryQuery.isLoading || libraryQuery.isError}
+            allowClear={isCategoryControlled}
+            clearLabel="None"
+            options={categoryOptions}
+            value={selectedCategoryId}
+            onChange={handleCategoryChange}
+            onCloseAutoFocus={(event) => {
+              if (!isPointerDevice()) return;
+              event.preventDefault();
+              inputRef.current?.focus();
+            }}
+          />
+          {suggestedCategoryIds && suggestedCategoryIds.length > 0 && (
+            <div className="mt-1 flex items-center gap-1.5 text-[0.72rem] text-[#64748b]">
+              <span>
+                {showAllCategories
+                  ? 'Showing all skill groups.'
+                  : `Showing skill groups for ${suggestedReason || 'this demand type'}.`}
+              </span>
+              <button
+                type="button"
+                className="font-semibold text-[#2563eb] hover:underline"
+                onClick={() => setShowAllCategories((v) => !v)}
+              >
+                {showAllCategories ? 'Show suggested only' : 'Show all'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-[0.8rem] font-semibold text-[#475569]">Selected Skills</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[0.75rem] font-medium text-[#94a3b8]">{value.length} selected</span>
+              {value.length > 0 && (
+                <button type="button" onClick={clearAllSkills} className="text-[0.75rem] font-semibold text-[#dc2626] hover:underline">
+                  Deselect all
+                </button>
+              )}
+            </div>
+          </div>
+          <div
+            onClick={() => inputRef.current?.focus()}
+            className={cn(
+              'flex min-h-[38px] w-full cursor-text flex-wrap items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 transition-colors',
+              'focus-within:border-[#2563eb] focus-within:ring-1 focus-within:ring-[#bfdbfe]',
+              inputError || error ? 'border-[#fca5a5]' : 'border-[#e2e8f0]'
+            )}
+          >
+            {value.map((name, index) => (
+              <Badge
+                key={`${name}-${index}`}
+                className="gap-1 rounded border-transparent bg-[#eff6ff] px-2 py-0.5 text-[0.75rem] font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
+              >
+                {name}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSkill(index);
+                  }}
+                  aria-label={`Remove ${name}`}
+                  className="ml-0.5 inline-flex items-center justify-center rounded-full hover:text-[#dc2626]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {showEmptyState && (
+              <span className="text-[0.8rem] text-[#94a3b8]">
+                No skills selected.{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (selectedCategory) mergeSkills(selectedCategory.skills.map((s) => s.name));
+                    inputRef.current?.focus();
+                  }}
+                  className="font-semibold text-[#2563eb] hover:underline"
+                >
+                  Re-add {selectedCategory?.name} skills
+                </button>
+              </span>
+            )}
+            <input
+              id={`${listId}-input`}
+              ref={inputRef}
+              type="text"
+              value={text}
+              maxLength={SKILL_MAX_LENGTH}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (inputError) setInputError(null);
+              }}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              aria-label="Type a skill and press Enter"
+              autoComplete="off"
+              placeholder={value.length === 0 && !showEmptyState ? 'Type a skill and press Enter' : undefined}
+              className="min-w-[120px] flex-1 border-none bg-transparent p-0 text-[0.85rem] outline-none placeholder:text-[#94a3b8]"
+            />
+          </div>
+          {inputError && <span className="mt-1 block text-[0.72rem] text-[#dc2626]">{inputError}</span>}
+          {error && !inputError && <span className="mt-1 block text-[0.72rem] text-[#dc2626]">{error}</span>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

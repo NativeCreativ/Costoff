@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
-import { canManageDemandPipeline, canReviewSourcedProfile } from '@/lib/auth/demandFulfillmentPermissions';
+import { canManageDemandPipeline, canReviewSourcedProfile, canAmReviewProfile } from '@/lib/auth/demandFulfillmentPermissions';
 import { submissionStatusChangeSchema } from '@/components/demandFulfillment/demandFulfillment.schema';
 import { loadDemandContext } from '@/lib/demandFulfillment/loadDemandContext';
 import { checkSubmissionStatusTransition } from '@/lib/demandFulfillment/statusTransitions';
@@ -66,11 +66,18 @@ export async function PATCH(
     }
     const { to_status, remark } = parsed.data;
 
-    // Review batch 4: leaving Sourcing for Shortlist is the AM / SPOC approval step. A Recruiter
-    // submits (POST …/review) and cannot approve their own profile through this route.
-    if (to_status === 'shortlisted_internal' && ['sourced', 'submitted_to_spoc'].includes(submission.current_status)
-      && !canReviewSourcedProfile({ role: currentUser.role, id: currentUser.userId }, demand)) {
-      return NextResponse.json({ error: 'The demand’s Account Manager or SPOC approves profiles into Shortlist' }, { status: 403 });
+    // Review batch 4 & Review Comment 21: leaving Sourcing for Shortlist is the AM / SPOC approval step.
+    if (to_status === 'shortlisted_internal' && ['sourced', 'submitted_to_spoc', 'submitted_to_am'].includes(submission.current_status)) {
+      if (demand.is_niche) {
+        if (submission.current_status === 'submitted_to_spoc') {
+          return NextResponse.json({ error: 'Niche demands require SPOC approval before AM approval' }, { status: 400 });
+        }
+        if (!canAmReviewProfile({ role: currentUser.role, id: currentUser.userId }, demand)) {
+          return NextResponse.json({ error: 'The demand’s Account Manager approves profiles into Shortlist for niche demands' }, { status: 403 });
+        }
+      } else if (!canReviewSourcedProfile({ role: currentUser.role, id: currentUser.userId }, demand)) {
+        return NextResponse.json({ error: 'The demand’s Account Manager or SPOC approves profiles into Shortlist' }, { status: 403 });
+      }
     }
 
     const check = checkSubmissionStatusTransition(submission.current_status, to_status, remark);
@@ -104,7 +111,7 @@ export async function PATCH(
 
       // Entering onboarding: ensure a demand_onboarding row exists for this candidate.
       if (isTerminal && (submission.sourcing_type ?? 'active') === 'active') {
-        await promoteNextBackup(tx, demandId);
+        await promoteNextBackup(tx, demandId, currentUser.userId);
       }
 
       if (to_status === 'onboarding') {

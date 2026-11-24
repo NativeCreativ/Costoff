@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     const user = await requireAuth();
     const { searchParams } = new URL(request.url);
     const phase = searchParams.get('phase') || '';
+    const activeOnly = searchParams.get('activeOnly') === 'true' || searchParams.get('activeDemandsOnly') === 'true';
     if (phase && !PHASES.includes(phase)) return NextResponse.json({ error: 'Unknown phase' }, { status: 400 });
     const statuses = phase
       ? [...(LIFECYCLE_PHASE_STATUSES[phase as keyof typeof LIFECYCLE_PHASE_STATUSES] as readonly string[])]
@@ -29,7 +30,9 @@ export async function GET(request: Request) {
     const conditions: Prisma.Sql[] = [
       Prisma.sql`s.is_active = true`,
       Prisma.sql`s.current_status = ANY(${statuses})`,
-      Prisma.sql`COALESCE(d.status, '') NOT IN ('Closure', 'Cancelled')`,
+      activeOnly
+        ? Prisma.sql`COALESCE(d.status, '') NOT IN ('Closure', 'Cancelled', 'On Hold')`
+        : Prisma.sql`COALESCE(d.status, '') NOT IN ('Closure', 'Cancelled')`,
     ];
     const scope = buildDashboardDemandCondition(user, 'd');
     if (scope) conditions.push(scope);

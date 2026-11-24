@@ -41,6 +41,7 @@ export interface ReportInterview {
   id: string;
   status: string;
   result: string | null;
+  scheduled_date?: string | null;
   start_time: string | null;
   end_time: string | null;
   interview_type: string | null;
@@ -53,15 +54,41 @@ export interface ReportInterview {
   client_name: string | null;
 }
 
+export interface DayInterviewSummary {
+  date: string;
+  count: number;
+  byStatus: Record<string, number>;
+}
+
 export interface TodaysInterviewsReport {
   date: string;
+  startDate?: string;
+  endDate?: string;
+  activeOnly?: boolean;
   total: number;
   summary: { status: string; count: number }[];
+  dailyCounts?: DayInterviewSummary[];
   interviews: ReportInterview[];
 }
 
-export async function getTodaysInterviewsReport(date: string | null): Promise<TodaysInterviewsReport> {
-  const { data } = await api.get('/reports/todays-interviews', { params: date ? { date } : {} });
+export interface InterviewsReportParams {
+  date?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  activeOnly?: boolean;
+}
+
+export async function getTodaysInterviewsReport(params?: string | InterviewsReportParams | null): Promise<TodaysInterviewsReport> {
+  const queryParams: Record<string, string> = {};
+  if (typeof params === 'string') {
+    if (params) queryParams.date = params;
+  } else if (params) {
+    if (params.date) queryParams.date = params.date;
+    if (params.startDate) queryParams.startDate = params.startDate;
+    if (params.endDate) queryParams.endDate = params.endDate;
+    if (params.activeOnly) queryParams.activeOnly = 'true';
+  }
+  const { data } = await api.get('/reports/todays-interviews', { params: queryParams });
   return data;
 }
 
@@ -115,9 +142,10 @@ export type ContributionReport =
       rows: { demand_id: string; request_id: string; job_title: string | null; client_name: string | null; counts: ContributionCounts }[];
     };
 
-export async function getContributionReport(from: string, to: string, userId: string | null): Promise<ContributionReport> {
+export async function getContributionReport(from: string, to: string, userId: string | null, activeOnly?: boolean): Promise<ContributionReport> {
   const params: Record<string, string> = { from, to };
   if (userId) params.userId = userId;
+  if (activeOnly) params.activeOnly = 'true';
   const { data } = await api.get('/reports/contribution', { params });
   return data;
 }
@@ -137,7 +165,10 @@ export interface CandidateAgingRow {
   days_by_phase: Record<string, number>;
 }
 
-export async function getCandidateAgingReport(phase: string | null): Promise<{ rows: CandidateAgingRow[]; truncated: boolean }> {
-  const { data } = await api.get('/reports/candidate-aging', { params: phase ? { phase } : {} });
+export async function getCandidateAgingReport(phase: string | null, activeOnly?: boolean): Promise<{ rows: CandidateAgingRow[]; truncated: boolean }> {
+  const params: Record<string, string> = {};
+  if (phase) params.phase = phase;
+  if (activeOnly) params.activeOnly = 'true';
+  const { data } = await api.get('/reports/candidate-aging', { params });
   return { rows: data.rows ?? [], truncated: !!data.truncated };
 }

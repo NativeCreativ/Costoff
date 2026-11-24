@@ -6,7 +6,6 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   Copy,
-  History,
   PauseCircle,
   PlayCircle,
   RotateCcw,
@@ -14,8 +13,6 @@ import {
 } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
-import { Loader } from '@/components/ui/Loader';
-import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RemarkDialog } from './RemarkDialog';
 import { DEMAND_LIFECYCLE_STATUS_VALUES } from '@/lib/demandFulfillment/constants';
@@ -24,10 +21,8 @@ import {
   useChangeDemandStatusMutation,
   useCloseDemandMutation,
 } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
-import { useDemandStatusEventsQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
-import type { Demand, DemandOnboarding, DemandStatusEvent } from '@/components/types';
+import type { Demand, DemandOnboarding } from '@/components/types';
 import { formatDateTime } from '@/lib/utils';
-import { USER_ROLE_ABBR } from '@/constants/options';
 
 interface DemandActionsBarProps {
   demand: Demand;
@@ -67,7 +62,6 @@ export function DemandActionsBar({ demand, onboardings, canManage, onCloneReques
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [closureFeedback, setClosureFeedback] = useState('');
   const [showClosureForm, setShowClosureForm] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const pendingClosureOnboardings = useMemo(
@@ -202,19 +196,8 @@ export function DemandActionsBar({ demand, onboardings, canManage, onCloneReques
               <Copy className="h-3.5 w-3.5" /> Clone Demand
             </Button>
           )}
-
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowTimeline(true)}
-            className="ml-auto gap-1.5 text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a]"
-          >
-            <History className="h-3.5 w-3.5" /> Status timeline
-          </Button>
         </div>
       )}
-
-      {showTimeline && <StatusTimelineModal requestId={requestId} onClose={() => setShowTimeline(false)} />}
 
       {pendingAction?.type === 'change_status' && (
         <RemarkDialog
@@ -309,48 +292,5 @@ export function DemandActionsBar({ demand, onboardings, canManage, onCloneReques
         />
       )}
     </>
-  );
-}
-
-/** The status history, in a modal. Fetched on open so it costs nothing until asked for. */
-function StatusTimelineModal({ requestId, onClose }: { requestId: string; onClose: () => void }) {
-  const statusEventsQuery = useDemandStatusEventsQuery(requestId);
-  const statusEvents: DemandStatusEvent[] = statusEventsQuery.data ?? [];
-
-  return (
-    <Modal title="Status Timeline" subtitle={`History of status changes for ${requestId}`} width="560px" onClose={onClose}>
-      {statusEventsQuery.isLoading ? (
-        <Loader message="Loading timeline…" size="sm" />
-      ) : statusEvents.length === 0 ? (
-        <div className="py-6 text-center text-[0.83rem] text-[#94a3b8]">No status changes recorded yet.</div>
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {statusEvents.map((event) => (
-            <li key={event.id} className="flex items-start gap-3 border-b border-[#f1f5f9] pb-3 last:border-none last:pb-0">
-              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#2563eb]" />
-              <div className="flex-1">
-                <div className="text-[0.83rem] font-semibold text-[#0f172a]">
-                  {event.from_status ? `${event.from_status} → ${event.to_status}` : `Set to ${event.to_status}`}
-                </div>
-                {event.remark && <div className="mt-0.5 text-[0.8rem] text-[#475569]">{event.remark}</div>}
-                <div className="mt-0.5 text-[0.72rem] text-[#94a3b8]">
-                  {event.profiles?.full_name && (
-                    <>
-                      {event.profiles.full_name}{' '}
-                      {event.profiles.role && (
-                        <span className="ms-1 text-[0.68rem] font-normal text-[#64748b]">
-                          ({USER_ROLE_ABBR[event.profiles.role] ?? event.profiles.role})
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {event.profiles?.full_name === null && 'System'} · {formatDateTime(event.created_at)}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </Modal>
   );
 }

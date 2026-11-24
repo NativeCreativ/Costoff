@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,9 +16,10 @@ import { CallLogPanel } from './CallLogPanel';
 import { DemandInstructionsPanel } from './DemandInstructionsPanel';
 import { SearchExistingCandidateModal, CreateCandidateForDemandModal } from './AddCandidateModal';
 import { useDemandCandidatesQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
-import { UserPlus, UserSearch } from 'lucide-react';
+import { UserPlus, UserSearch, Calendar } from 'lucide-react';
 import { useChangeSubmissionStatusMutation, useReviewSourcedProfileMutation, useScheduleInterviewMutation, useUpdateInterviewMutation } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
 import { SourcedCandidateModal } from './SourcedCandidateModal';
+import { CandidateInterviewDrawer } from './CandidateInterviewDrawer';
 import { useSpocProfilesQuery } from '@/queries/demands/useSpocProfilesQuery';
 import { useAmProfilesQuery } from '@/queries/demands/useAmProfilesQuery';
 import { useRecruiterProfilesQuery } from '@/queries/demands/useRecruiterProfilesQuery';
@@ -27,6 +29,7 @@ import { demandStatusLabel } from '@/lib/demands/demandStatusLabel';
 import { isCustomPhaseTab } from '@/lib/demandFulfillment/routes';
 import { queryKeys } from '@/lib/queryKeys';
 import { LIFECYCLE_PHASE_STATUSES } from '@/lib/demandFulfillment/lifecyclePhases';
+import { candidateUrgency } from '@/lib/candidates/candidateUrgency';
 import { useInterviewStatusOptions } from '@/components/interviews/useInterviewStatusOptions';
 import type { Demand } from '@/components/types';
 import type { DemandFormState } from '@/components/demands/DemandFormModal';
@@ -43,7 +46,13 @@ interface SubmissionRow {
   submitted_for_review_at?: string | null;
   /** Days per phase (review batch 5, computePhaseAging). */
   phase_aging?: { current_phase: string | null; days_in_current_phase: number | null; days_by_phase: Record<string, number> } | null;
-  candidates?: { full_name?: string; email?: string | null } | null;
+  candidates?: {
+    full_name?: string;
+    email?: string | null;
+    offer_in_hand?: boolean | null;
+    offer_doj?: string | Date | null;
+    availability?: string | null;
+  } | null;
 }
 
 interface InterviewRow {
@@ -120,11 +129,13 @@ export function DemandLifecyclePanels({
       <CandidatePhasePanel
         requestId={requestId}
         phase={activeTab}
+        demand={demand}
         submissions={submissions}
         interviews={interviews}
         canManage={canManagePipeline}
         canUpload={canUploadProfiles}
         canReview={canReviewProfiles}
+        canAssignAccountManager={canAssignAccountManager}
         currentUserId={currentUserId}
       />
     );
@@ -326,26 +337,36 @@ const INTERVIEW_LOCATIONS = ['Teams', 'Direct_Call'] as const;
 function CandidatePhasePanel({
   requestId,
   phase,
+  demand,
   submissions,
   interviews,
   canManage,
   canUpload,
   canReview,
+  canAssignAccountManager = false,
   currentUserId,
 }: {
   requestId: string;
   phase: 'sourcing' | 'shortlist' | 'selection';
+  demand: Demand;
   submissions: SubmissionRow[];
   interviews: InterviewRow[];
   canManage: boolean;
   canUpload: boolean;
   canReview: boolean;
+  canAssignAccountManager?: boolean;
   currentUserId?: string;
 }) {
   const review = useReviewSourcedProfileMutation(requestId);
   const [viewing, setViewing] = useState<{ candidateId: string; editable: boolean } | null>(null);
   const [rejecting, setRejecting] = useState<{ id: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [interviewDrawer, setInterviewDrawer] = useState<{ dcId: string; candidateName: string } | null>(null);
+  const isNiche = !!demand.is_niche;
+  const isAm = (!!currentUserId && demand.contact_profile_id === currentUserId) || canAssignAccountManager;
+  const isSpoc = !!currentUserId && demand.spoc_profile_id === currentUserId;
+  const canSpocApprove = isNiche ? (isSpoc || canAssignAccountManager) : canReview;
+  const canAmApprove = isAm || canAssignAccountManager;
   // Saving / submitting a Sourcing profile: the pipeline team, or whoever uploaded it.
   const canSubmitRow = (row: SubmissionRow) => canManage || (!!currentUserId && row.added_by === currentUserId);
   const [addMode, setAddMode] = useState<'existing' | 'new' | null>(null);
@@ -430,32 +451,62 @@ function CandidatePhasePanel({
           </div>
         </Modal>
       )}
-      {phase === 'sourcing' && rows.some((r) => r.current_status === 'submitted_to_spoc') && canReview && (
+      {phase === 'sourcing' && !isNiche && rows.some((r) => r.current_status === 'submitted_to_spoc') && canReview && (
         <p className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-1.5 text-[0.78rem] text-[#1e40af]">
           {rows.filter((r) => r.current_status === 'submitted_to_spoc').length} profile(s) waiting for your approval.
+        </p>
+      )}
+      {phase === 'sourcing' && isNiche && rows.some((r) => r.current_status === 'submitted_to_spoc') && (isSpoc || canAssignAccountManager) && (
+        <p className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-1.5 text-[0.78rem] text-[#1e40af]">
+          {rows.filter((r) => r.current_status === 'submitted_to_spoc').length} niche profile(s) waiting for SPOC review.
+        </p>
+      )}
+      {phase === 'sourcing' && isNiche && rows.some((r) => r.current_status === 'submitted_to_am') && (isAm || canAssignAccountManager) && (
+        <p className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-1.5 text-[0.78rem] text-[#1e40af]">
+          {rows.filter((r) => r.current_status === 'submitted_to_am').length} niche profile(s) waiting for Account Manager approval.
         </p>
       )}
       {rows.length === 0 && <p className="text-[0.85rem] text-[#94a3b8]">No candidates in this phase.</p>}
       {rows.map((row) => {
         const local = draft[row.id] || { date: '', time: '', status: 'Completed', comment: '', type: 'Technical', mode: 'Video', location: 'Teams', result: 'pass' };
         const interview = interviews.find((item) => item.candidate_id && item.candidate_id === row.candidate_id);
+        const urgency = candidateUrgency(row.candidates ?? {});
+        const canToggleSourcing = canManage || canUpload || canReview || (!!currentUserId && row.added_by === currentUserId);
         return (
           <div key={row.id} className="rounded-md border border-[#e2e8f0] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <button
-                  type="button"
-                  className="font-semibold text-[#2563eb] hover:underline"
-                  onClick={() => row.candidate_id && setViewing({
-                    candidateId: row.candidate_id,
-                    editable: phase === 'sourcing' && row.current_status === 'sourced' && canSubmitRow(row),
-                  })}
-                >
-                  {row.candidates?.full_name || 'Candidate'}
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    className="font-semibold text-[#2563eb] hover:underline"
+                    onClick={() => row.candidate_id && setViewing({
+                      candidateId: row.candidate_id,
+                      editable: phase === 'sourcing' && row.current_status === 'sourced' && canSubmitRow(row),
+                    })}
+                  >
+                    {row.candidates?.full_name || 'Candidate'}
+                  </button>
+                  {urgency && (
+                    <Badge
+                      title={urgency.reason}
+                      className={`border-transparent px-1.5 py-0 text-[0.65rem] font-bold ${
+                        urgency.level === 'high' ? 'bg-[#fee2e2] text-[#b91c1c] hover:bg-[#fee2e2]' : 'bg-[#fef3c7] text-[#b45309] hover:bg-[#fef3c7]'
+                      }`}
+                    >
+                      {urgency.label}
+                    </Badge>
+                  )}
+                </div>
                 <div className="text-[0.75rem] text-[#64748b]">
                   {phase === 'sourcing'
-                    ? row.current_status === 'submitted_to_spoc' ? 'Submitted — waiting for AM / SPOC' : row.review_state === 'rejected' ? 'Rejected by AM / SPOC' : 'Saved (not submitted)'
+                    ? row.current_status === 'submitted_to_spoc'
+                      ? (isNiche ? 'Submitted — waiting for SPOC review' : 'Submitted — waiting for AM / SPOC')
+                      : row.current_status === 'submitted_to_am'
+                      ? 'SPOC approved — waiting for AM approval'
+                      : row.review_state === 'rejected'
+                      ? 'Rejected in review'
+                      : 'Saved (not submitted)'
                     : row.current_status.replace(/_/g, ' ')}
                   {' · '}{row.sourcing_type === 'backup' ? 'Backup' : 'Active'}
                   {interview ? ` · ${interview.interview_type || '—'} · ${interview.mode || '—'} · ${interview.interview_location || '—'}` : ''}
@@ -490,13 +541,23 @@ function CandidatePhasePanel({
                     )}
                   </>
                 )}
-                {phase === 'sourcing' && row.current_status === 'submitted_to_spoc' && canReview && (
+                {phase === 'sourcing' && row.current_status === 'submitted_to_spoc' && canSpocApprove && (
                   <>
-                    <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'approve' })}>Approve</Button>
+                    <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'approve' })}>
+                      {isNiche ? 'Approve (Forward to AM)' : 'Approve'}
+                    </Button>
                     <Button size="sm" variant="outline" disabled={review.isPending} onClick={() => { setRejectReason(''); setRejecting({ id: row.id, name: row.candidates?.full_name || 'this candidate' }); }}>Reject</Button>
                   </>
                 )}
-                {canManage && (
+                {phase === 'sourcing' && row.current_status === 'submitted_to_am' && isNiche && canAmApprove && (
+                  <>
+                    <Button size="sm" disabled={review.isPending} onClick={() => review.mutate({ dcId: row.id, action: 'approve' })}>
+                      Approve (Shortlist)
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={review.isPending} onClick={() => { setRejectReason(''); setRejecting({ id: row.id, name: row.candidates?.full_name || 'this candidate' }); }}>Reject</Button>
+                  </>
+                )}
+                {canToggleSourcing && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -513,7 +574,16 @@ function CandidatePhasePanel({
                   </>
                 )}
                 {canManage && phase === 'selection' && (
-                  <Button size="sm" onClick={() => move(row.id, 'selected', 'Selected')}>Mark selected</Button>
+                  <>
+                    <Button
+                      size="sm"
+                      className="gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                      onClick={() => setInterviewDrawer({ dcId: row.id, candidateName: row.candidates?.full_name || 'Candidate' })}
+                    >
+                      <Calendar className="h-4 w-4" /> Interview
+                    </Button>
+                    <Button size="sm" onClick={() => move(row.id, 'selected', 'Selected')}>Mark selected</Button>
+                  </>
                 )}
               </div>
             </div>
@@ -616,6 +686,18 @@ function CandidatePhasePanel({
           </div>
         );
       })}
+      {interviewDrawer && (
+        <CandidateInterviewDrawer
+          open={true}
+          onClose={() => {
+            setInterviewDrawer(null);
+            queryClient.invalidateQueries({ queryKey: queryKeys.lifecycle(requestId) });
+          }}
+          requestId={requestId}
+          dcId={interviewDrawer.dcId}
+          candidateName={interviewDrawer.candidateName}
+        />
+      )}
     </div>
   );
 }

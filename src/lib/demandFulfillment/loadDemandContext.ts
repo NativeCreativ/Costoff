@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 export interface DemandContext {
   id: string;
   request_id: string;
+  company_id: string | null;
   status: string | null;
   num_positions: number | null;
   created_by: string | null;
@@ -12,6 +13,7 @@ export interface DemandContext {
   technology_stack: string[];
   /** Saved, not yet submitted (review batch 4). canViewDemand hides it from everyone else. */
   is_draft: boolean;
+  is_niche: boolean;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,6 +30,7 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
     select: {
       id: true,
       request_id: true,
+      company_id: true,
       status: true,
       num_positions: true,
       created_by: true,
@@ -35,6 +38,7 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
       spoc_profile_id: true,
       technology_stack: true,
       is_draft: true,
+      is_niche: true,
       demand_ta_allocations: { select: { ta_id: true } },
     },
   });
@@ -43,6 +47,7 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
   return {
     id: demand.id,
     request_id: demand.request_id,
+    company_id: demand.company_id,
     status: demand.status,
     num_positions: demand.num_positions,
     created_by: demand.created_by,
@@ -51,5 +56,6 @@ export async function loadDemandContext(idOrRequestId: string): Promise<DemandCo
     recruiterIds: demand.demand_ta_allocations.map((a) => a.ta_id).filter((id): id is string => !!id),
     technology_stack: demand.technology_stack ?? [],
     is_draft: demand.is_draft,
+    is_niche: !!demand.is_niche,
   };
 }

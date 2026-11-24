@@ -95,6 +95,9 @@ export const demandSchema = z
     interview_rounds_cleared: z.boolean().optional(),
     /** Review batch 4: create as a draft ("Save as draft") — visible to its creator only. */
     is_draft: z.boolean().optional(),
+    /** Niche demand flag: requires dual SPOC + AM approval */
+    is_niche: z.boolean().optional(),
+    rate_conversion_formula: z.any().optional().nullable(),
     /** Review batch 4: submit a draft to the team (edit form of a draft demand). */
     publish: z.boolean().optional(),
   });
@@ -198,6 +201,9 @@ export const demandApiSchema = z.object({
   spoc_profile_id: z.string().nullable().optional(),
   recruiter_ids: z.array(z.string()).default([]),
   interview_rounds: interviewRoundsListSchema,
+  /** Niche demand flag */
+  is_niche: z.boolean().optional(),
+  rate_conversion_formula: z.any().optional().nullable(),
   /** POST only: save as a draft instead of publishing. */
   is_draft: z.boolean().optional(),
   /** PUT only: publish a draft (it becomes visible to the team and the team is notified). */

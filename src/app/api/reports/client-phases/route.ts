@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     if (companyId && companyId !== 'none' && !UUID_RE.test(companyId)) {
       return NextResponse.json({ error: 'Unknown client' }, { status: 400 });
     }
-    const includeClosed = searchParams.get('includeClosed') === 'true';
+    const includeClosed = searchParams.get('includeClosed') === 'true' && searchParams.get('activeOnly') !== 'true';
 
     const conditions: Prisma.Sql[] = [];
     const scope = buildDashboardDemandCondition(user, 'd');

@@ -23,6 +23,8 @@ export function companyFormValuesToPayload(values: CompanyFormValues): CompanyFo
     country: values.country,
     other_details: values.other_details,
     status: values.status,
+    max_submissions_per_position: values.max_submissions_per_position ?? 5,
+    rate_conversion_formula: values.rate_conversion_formula ?? null,
     spocs: values.spocs.filter((spoc) => spoc.name.trim()),
   };
 }

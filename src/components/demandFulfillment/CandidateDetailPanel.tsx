@@ -50,6 +50,7 @@ export function CandidateDetailPanel({ requestId, dcId, canManage, canManageInte
   const events = detailQuery.data?.events ?? [];
   const interviews = detailQuery.data?.interviews ?? [];
   const otherDemands = detailQuery.data?.otherDemands ?? [];
+  const similarDemands = detailQuery.data?.similarDemands ?? [];
 
   // Demand-level `canManage` is the VIEW + CREATE right; the server additionally reports a
   // per-row `can_edit` (creator ownership: submissions.added_by). Both must hold before any
@@ -268,6 +269,51 @@ export function CandidateDetailPanel({ requestId, dcId, canManage, canManageInte
                       <div key={i} className="flex items-center justify-between text-[0.78rem] text-[#475569]">
                         <span>{od.demands?.request_id || od.demand_id} — {od.demands?.skill_description || od.demands?.company_name || ''}</span>
                         <Badge className="border-transparent bg-[#f1f5f9] text-[0.68rem] font-semibold text-[#64748b] hover:bg-[#f1f5f9]">{submissionStatusLabel(od.current_status)}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Similar Demands Suggestions (Review Comment 22) */}
+              {similarDemands.length > 0 && (
+                <div className="rounded-xl border border-[#bfdbfe] bg-[#f0f9ff]/40 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[0.75rem] font-extrabold uppercase tracking-[0.05em] text-[#0369a1]">
+                      Suggested Similar Demands ({similarDemands.length})
+                    </span>
+                    <span className="text-[0.7rem] text-[#0284c7]">Skill match in active demands</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {similarDemands.map((sd: any) => (
+                      <div key={sd.id} className="rounded-lg border border-[#e0f2fe] bg-white p-2.5 shadow-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <a
+                              href={`/demands/${sd.request_id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-[#0284c7] hover:underline text-[0.82rem]"
+                            >
+                              {sd.request_id} — {sd.job_title}
+                            </a>
+                            <div className="text-[0.72rem] text-[#64748b]">
+                              {sd.client_name ? `${sd.client_name} · ` : ''}{sd.num_positions} position{sd.num_positions === 1 ? '' : 's'} · Status: {sd.status}
+                            </div>
+                          </div>
+                          <Badge className="border-transparent bg-[#e0f2fe] text-[#0369a1] text-[0.68rem] font-semibold whitespace-nowrap">
+                            {sd.match_count} skill{sd.match_count === 1 ? '' : 's'} match
+                          </Badge>
+                        </div>
+                        {sd.matching_skills?.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {sd.matching_skills.map((skill: string) => (
+                              <span key={skill} className="rounded bg-[#f0f9ff] border border-[#bae6fd] px-1.5 py-0.5 text-[0.65rem] text-[#0369a1] font-medium">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

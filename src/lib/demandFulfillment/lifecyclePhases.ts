@@ -1,6 +1,6 @@
 /** Which submission statuses belong on each lifecycle tab. Selected candidates show on Onboarding. */
 export const LIFECYCLE_PHASE_STATUSES = {
-  sourcing: ['sourced', 'submitted_to_spoc'],
+  sourcing: ['sourced', 'submitted_to_spoc', 'submitted_to_am'],
   shortlist: ['shortlisted_internal', 'sent_to_customer'],
   selection: ['customer_shortlisted', 'interview_scheduled', 'interviewed'],
   onboarding: ['selected', 'offer_released', 'offer_accepted', 'onboarding', 'bgv_pending', 'bgv_verified', 'joined'],

@@ -44,7 +44,7 @@ export function LogCallModal({
 }: {
   requestId: string;
   onClose: () => void;
-  onDemandMatch: (match: { callId: string; candidateId: string; canEditCandidate: boolean }) => void;
+  onDemandMatch: (match: { callId: string; candidateId: string; canEditCandidate: boolean; skillGroupId?: string | null }) => void;
 }) {
   const toast = useToast();
   const library = useSkillsLibraryQuery();
@@ -86,7 +86,12 @@ export function LogCallModal({
         const who = res.reused_existing_candidate ? ' (matched an existing profile)' : '';
         if (parsed.data.outcome === 'demand_match') {
           toast.success('Demand Match logged', `Complete the candidate details to add them to Sourcing${who}.`);
-          onDemandMatch({ callId: res.call.id, candidateId: res.candidate_id, canEditCandidate: res.can_edit_candidate });
+          onDemandMatch({
+            callId: res.call.id,
+            candidateId: res.candidate_id,
+            canEditCandidate: res.can_edit_candidate,
+            skillGroupId: res.skill_group_id ?? parsed.data.skill_group_id ?? null,
+          });
         } else {
           toast.success('Call logged', `Profile kept in the candidate database${who}.`);
         }

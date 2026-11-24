@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
-import { CalendarPlus, ChevronDown, ChevronUp, Video, Phone as PhoneIcon, MapPin } from 'lucide-react';
+import { CalendarPlus, ChevronDown, ChevronUp, Video, Phone as PhoneIcon, MapPin, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import {
 import { useInterviewStatusOptions } from '@/components/interviews/useInterviewStatusOptions';
 import { HARDCODED_DEFAULT_INTERVIEW_MODES } from '@/lib/demandFulfillment/constants';
 import { normalizeInterviewResult } from '@/lib/auth/interviewPermissions';
+import { CandidateInterviewDrawer } from './CandidateInterviewDrawer';
 import type { DemandInterview } from '@/components/types';
 import { formatScheduledDate, formatScheduledTime, calculateDurationMinutes, formatDurationMinutes } from '@/lib/utils';
 
@@ -48,6 +49,7 @@ export function CandidateInterviewsSection({ requestId, dcId, interviews, canMan
   const updateMutation = useUpdateInterviewMutation(requestId);
 
   const rounds = configQuery.data?.rounds ?? [];
+  const [showDrawer, setShowDrawer] = useState(false);
   const [form, setForm] = useState({
     round_id: '',
     scheduled_date: '',
@@ -145,11 +147,16 @@ export function CandidateInterviewsSection({ requestId, dcId, interviews, canMan
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-[0.75rem] font-extrabold uppercase tracking-[0.05em] text-[#475569]">Interview Rounds</span>
-        {canManage && (
-          <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
-            <CalendarPlus className="h-3.5 w-3.5" /> Schedule
+        <div className="flex items-center gap-2">
+          <Button size="sm" className="gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8]" onClick={() => setShowDrawer(true)}>
+            <Calendar className="h-3.5 w-3.5" /> Interview Manager
           </Button>
-        )}
+          {canManage && (
+            <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
+              <CalendarPlus className="h-3.5 w-3.5" /> Quick Schedule
+            </Button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -338,6 +345,15 @@ export function CandidateInterviewsSection({ requestId, dcId, interviews, canMan
             );
           })}
         </div>
+      )}
+      {showDrawer && (
+        <CandidateInterviewDrawer
+          open={true}
+          onClose={() => setShowDrawer(false)}
+          requestId={requestId}
+          dcId={dcId}
+          candidateName={candidateName}
+        />
       )}
     </div>
   );

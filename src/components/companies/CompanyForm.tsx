@@ -3,32 +3,22 @@
 import { ReactNode, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Globe, MapPin, Phone, Save } from 'lucide-react';
+import { Building2, Globe, MapPin, Phone, Save, Calculator } from 'lucide-react';
 import { FormField } from '@/components/ui/FormField';
 import { FormTextArea } from '@/components/ui/FormTextArea';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Button } from '@/components/ui/button';
 import { InterviewRoundConfigurator, roundIdentity } from '@/components/interviewRounds/InterviewRoundConfigurator';
-import { companyFormSchema } from './company.schema';
+import { companyFormSchema, type CompanyFormSchemaValues } from './company.schema';
 import { COMPANY_STATUS_OPTIONS } from '@/constants/options';
 import { SpocListEditor } from '@/components/masterData/SpocListEditor';
+import { FormulaCreator } from '@/components/rateConverter/FormulaCreator';
+import { DEFAULT_RATE_FORMULA, RateFormulaConfig } from '@/lib/rateConverter/formulaEngine';
 import type { ClientSpocItem } from '@/components/masterData/spoc.schema';
 import type { ConfiguredRound } from '@/services/interviewRound.service';
 
-/** Form values: the company's own fields. `status` is the schema's enum so zodResolver's types line up. */
-export type CompanyFormValues = {
-  name: string;
-  email: string;
-  phone: string;
-  website: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  other_details: string;
-  status: 'ACTIVE' | 'INACTIVE';
-  spocs: ClientSpocItem[];
-};
+/** Form values: inferred directly from companyFormSchema so the form and schema can never diverge. */
+export type CompanyFormValues = CompanyFormSchemaValues;
 
 /** Exposed methods for parent components (e.g., the Add Demand drawer). */
 export interface CompanyFormHandle {
@@ -96,6 +86,9 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
   showRounds = true,
 }, ref) => {
   const [rounds, setRounds] = useState<ConfiguredRound[]>(initialRounds ?? []);
+  const [formulaState, setFormulaState] = useState<RateFormulaConfig>(
+    (defaultValues.rate_conversion_formula as RateFormulaConfig) || DEFAULT_RATE_FORMULA
+  );
 
   const { register, control, handleSubmit, formState: { errors, isDirty }, reset } = useForm<CompanyFormValues>({
     resolver: zodResolver(companyFormSchema),
@@ -107,6 +100,7 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
     reset: () => {
       reset(defaultValues);
       setRounds(initialRounds ?? []);
+      setFormulaState((defaultValues.rate_conversion_formula as RateFormulaConfig) || DEFAULT_RATE_FORMULA);
     },
     isDirty: () => isDirty || rounds.length > 0,
   }));
@@ -122,7 +116,7 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
     <form
       id={formId}
       onSubmit={handleSubmit(
-        (values) => onSubmit(values, rounds),
+        (values) => onSubmit({ ...values, rate_conversion_formula: formulaState }, rounds),
         // Second arg of handleSubmit runs ONLY when validation fails. Without it, a schema
         // mismatch simply blocks the submit and the user sees nothing happen — which is exactly
         // how the earlier status-enum bug presented. This surfaces the real reason.
@@ -143,13 +137,23 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
         icon={<Building2 className="h-4 w-4" />}
         hint="Client Name is the unique key for this record. Matching ignores case and extra spaces, so an existing client is reused rather than duplicated."
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <FormField
             label="Client Name"
             required
             placeholder="e.g. Acme Corp Pvt Ltd"
             register={register('name')}
             error={errors.name?.message}
+            disabled={readOnly}
+          />
+          <FormField
+            label="Max Submissions per Position"
+            type="number"
+            min="1"
+            placeholder="5"
+            hint="Maximum candidate submissions allowed per position (overrides global default)"
+            register={register('max_submissions_per_position', { valueAsNumber: true })}
+            error={errors.max_submissions_per_position?.message}
             disabled={readOnly}
           />
           <Controller
@@ -225,13 +229,6 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
           <FormField label="State" placeholder="e.g. Karnataka" register={register('state')} error={errors.state?.message} disabled={readOnly} />
           <FormField label="Country" placeholder="e.g. India" register={register('country')} error={errors.country?.message} disabled={readOnly} />
         </div>
-        <FormTextArea
-          label="Other Details"
-          rows={2}
-          placeholder={'Anything not covered above, one per line as "Label: value"'}
-          register={register('other_details')}
-          error={errors.other_details?.message}
-        />
       </SectionCard>
 
       {showRounds && (
@@ -257,6 +254,24 @@ const CompanyForm = forwardRef<CompanyFormHandle, CompanyFormProps>(({
           />
         </SectionCard>
       )}
+
+      <SectionCard
+        label="Rate to CTC Conversion Formula"
+        icon={<Calculator className="h-4 w-4" />}
+        hint="Define custom variables and formulas for contract rate conversion. These rules are copied to demands raised for this client."
+      >
+        <FormulaCreator value={formulaState} onChange={setFormulaState} readOnly={readOnly} />
+      </SectionCard>
+
+      <SectionCard label="Other Details">
+        <FormTextArea
+          label="Other Details"
+          rows={2}
+          placeholder={'Anything not covered above, one per line as "Label: value"'}
+          register={register('other_details')}
+          error={errors.other_details?.message}
+        />
+      </SectionCard>
 
       {!hideActions && (
         <div className="flex items-center justify-end gap-2.5 pt-1">

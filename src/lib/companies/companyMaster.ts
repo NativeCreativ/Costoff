@@ -41,6 +41,8 @@ export interface CompanyCreateInput {
   country?: string | null;
   other_details?: string | null;
   status?: string | null;
+  max_submissions_per_position?: number | null;
+  rate_conversion_formula?: any;
   /**
    * Resolved owner pair from `resolveCompanyManager` (AM id + managed_by id). Exactly one is
    * set. Callers must resolve it from the session, never straight from the payload.
@@ -62,6 +64,8 @@ type CompanyCreateData = {
   country: string | null;
   other_details: string | null;
   status: string;
+  max_submissions_per_position: number;
+  rate_conversion_formula?: any;
   account_manager_id: string | null;
   managed_by: string | null;
   created_by: string | null;
@@ -99,6 +103,8 @@ export function toCompanyCreateData(input: CompanyCreateInput): CompanyCreateDat
     country: blankToNull(input.country),
     other_details: blankToNull(input.other_details),
     status: input.status?.trim() || 'ACTIVE',
+    max_submissions_per_position: input.max_submissions_per_position ?? 5,
+    rate_conversion_formula: input.rate_conversion_formula ?? null,
     // The owner pair is resolved by resolveCompanyManager, so both columns are already validated.
     account_manager_id: input.manager?.account_manager_id ?? null,
     managed_by: input.manager?.managed_by ?? null,

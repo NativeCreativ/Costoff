@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PIPELINE_KANBAN_COLUMNS, SUBMISSION_STATUS_COLORS, submissionStatusLabel } from './statusStyles';
+import { candidateUrgency } from '@/lib/candidates/candidateUrgency';
 import type { DemandCandidate } from '@/components/types';
 
 function daysSince(dateStr?: string | null): number {
@@ -15,6 +17,7 @@ interface PipelineKanbanBoardProps {
   candidates: DemandCandidate[];
   canManage: boolean;
   onCardClick: (dc: DemandCandidate) => void;
+  onOpenInterview?: (dc: DemandCandidate) => void;
   onDropOnColumn: (dc: DemandCandidate, toStatus: string) => void;
   onDropMultipleOnColumn: (dcs: DemandCandidate[], toStatus: string) => void;
   /** Ids of the checked cards. Owned by DemandPipelineTab, which renders the bulk
@@ -24,7 +27,7 @@ interface PipelineKanbanBoardProps {
   onSelectionChange: (ids: Set<string>) => void;
 }
 
-export function PipelineKanbanBoard({ candidates, canManage, onCardClick, onDropOnColumn, onDropMultipleOnColumn, selectedIds, onSelectionChange }: PipelineKanbanBoardProps) {
+export function PipelineKanbanBoard({ candidates, canManage, onCardClick, onOpenInterview, onDropOnColumn, onDropMultipleOnColumn, selectedIds, onSelectionChange }: PipelineKanbanBoardProps) {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const dragSourceIdsRef = useRef<Set<string>>(new Set());
   const dragCardRef = useRef<HTMLDivElement | null>(null);
@@ -159,6 +162,7 @@ export function PipelineKanbanBoard({ candidates, canManage, onCardClick, onDrop
                   items.map((dc) => {
                     const isSelected = selectedIds.has(dc.id);
                     const isDraggableCard = isDraggable(dc);
+                    const urgency = candidateUrgency(dc.candidates ?? {});
                     return (
                       <div
                         key={dc.id}
@@ -193,12 +197,43 @@ export function PipelineKanbanBoard({ candidates, canManage, onCardClick, onDrop
                             aria-label={`Select ${dc.candidates?.full_name || 'candidate'}`}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-[0.83rem] font-semibold text-[#0f172a] truncate">{dc.candidates?.full_name || 'Unnamed candidate'}</div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[0.83rem] font-semibold text-[#0f172a] truncate max-w-[150px]">{dc.candidates?.full_name || 'Unnamed candidate'}</span>
+                              {urgency && (
+                                <Badge
+                                  title={urgency.reason}
+                                  className={`border-transparent px-1.5 py-0 text-[0.65rem] font-bold ${
+                                    urgency.level === 'high' ? 'bg-[#fee2e2] text-[#b91c1c] hover:bg-[#fee2e2]' : 'bg-[#fef3c7] text-[#b45309] hover:bg-[#fef3c7]'
+                                  }`}
+                                >
+                                  {urgency.label}
+                                </Badge>
+                              )}
+                              {dc.sourcing_type === 'backup' && (
+                                <Badge className="border-transparent bg-[#f1f5f9] px-1.5 py-0 text-[0.65rem] font-medium text-[#64748b] hover:bg-[#f1f5f9]">
+                                  Backup
+                                </Badge>
+                              )}
+                            </div>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.68rem] text-[#94a3b8]">
                               <Badge className="border-transparent bg-[#f1f5f9] px-1.5 py-0 text-[0.65rem] font-semibold text-[#64748b] hover:bg-[#f1f5f9]">{dc.source.replace(/_/g, ' ')}</Badge>
                               <span>{daysSince(dc.updated_at || dc.created_at)}d in stage</span>
                             </div>
                             {dc.position_slot ? <div className="mt-1 text-[0.68rem] text-[#94a3b8]">Position #{dc.position_slot}</div> : null}
+                            {onOpenInterview && ['customer_shortlisted', 'interview_scheduled', 'interviewed', 'selected'].includes(dc.current_status) && (
+                              <button
+                                type="button"
+                                title="Manage Interviews"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenInterview(dc);
+                                }}
+                                className="mt-1.5 inline-flex items-center gap-1 rounded bg-[#eff6ff] px-1.5 py-0.5 text-[0.68rem] font-medium text-[#2563eb] hover:bg-[#dbeafe]"
+                              >
+                                <Calendar className="h-3 w-3" />
+                                Interviews
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

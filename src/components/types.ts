@@ -35,6 +35,10 @@ export interface Demand {
   other_details?: string | null;
   /** Saved, not yet submitted (review batch 4). */
   is_draft?: boolean;
+  /** Niche requirement requiring SPOC then AM dual-approval. */
+  is_niche?: boolean;
+  /** Rate to CTC converter formula at demand level. */
+  rate_conversion_formula?: unknown;
   customer_jd?: string | null;
   /** Uploaded Customer JD file (url under /uploads/jd/) and its original name. */
   customer_jd_file_url?: string | null;
@@ -355,6 +359,10 @@ export interface Company {
   state?: string | null;
   country?: string | null;
   status: string;
+  /** Max active submissions allowed per position for this client (default 5). */
+  max_submissions_per_position?: number | null;
+  /** Rate to CTC converter formula at client level. */
+  rate_conversion_formula?: unknown;
   /** Company-level SPOC. Null for a company that has never had one (the column is optional). */
   account_manager_id?: string | null;
   company_spocs?: ClientSpoc[];
@@ -417,6 +425,7 @@ export interface DemandCandidate {
   current_status: string;
   source: string;
   position_slot?: number | null;
+  sourcing_type?: 'active' | 'backup' | string | null;
   is_active: boolean;
   final_result?: string | null;
   remarks?: string | null;
@@ -508,6 +517,16 @@ export interface DemandInterview {
   mode?: string | null;
   meeting_link?: string | null;
   status?: string | null;
+  interview_type?: string | null;
+  interview_location?: string | null;
+  medium?: string | null;
+  reason?: string | null;
+  custom_reason?: string | null;
+  reject_reason?: string | null;
+  comments?: string | null;
+  parent_interview_id?: string | null;
+  is_current?: boolean;
+  rescheduled_interviews?: DemandInterview[];
   feedback?: string | null;
   result?: string | null;
   remark?: string | null;

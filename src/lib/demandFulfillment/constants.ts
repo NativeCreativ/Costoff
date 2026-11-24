@@ -42,6 +42,7 @@ export function isDemandRecruitmentActive(status?: string | null): boolean {
 export const SUBMISSION_STATUS_VALUES = [
   'sourced',
   'submitted_to_spoc',
+  'submitted_to_am',
   'shortlisted_internal',
   'sent_to_customer',
   'customer_shortlisted',
@@ -68,6 +69,7 @@ export const SUBMISSION_TERMINAL_EXIT_STATUSES: SubmissionStatus[] = ['rejected'
 export const SUBMISSION_FORWARD_ORDER: SubmissionStatus[] = [
   'sourced',
   'submitted_to_spoc',
+  'submitted_to_am',
   'shortlisted_internal',
   'sent_to_customer',
   'customer_shortlisted',

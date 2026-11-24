@@ -25,6 +25,7 @@ export async function GET(request: Request) {
   try {
     const user = await requireAuth();
     const { searchParams } = new URL(request.url);
+    const activeOnly = searchParams.get('activeOnly') === 'true' || searchParams.get('activeDemandsOnly') === 'true';
     const today = todayInIndia();
     const from = searchParams.get('from') || `${today.slice(0, 8)}01`;
     const to = searchParams.get('to') || today;
@@ -79,7 +80,7 @@ export async function GET(request: Request) {
         FROM (${activity}) a
         JOIN demands d ON d.id = a.demand_id
         LEFT JOIN companies co ON co.id = d.company_id
-        WHERE a.user_id = ${userId}::uuid
+        WHERE a.user_id = ${userId}::uuid ${activeOnly ? Prisma.sql`AND COALESCE(d.status, '') NOT IN ('Closure', 'Cancelled')` : Prisma.empty}
         GROUP BY d.id, d.request_id, d.job_title, co.client_name, co.name, d.client_name
         ORDER BY COUNT(*) DESC, d.request_id`;
       const person = await prisma.profiles.findUnique({ where: { id: userId }, select: { full_name: true, role: true } });
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
         level: 'demand',
         from,
         to,
+        activeOnly,
         user: { id: userId, name: person?.full_name ?? 'Unknown', role: person?.role ?? null },
         can_see_all: seeAll,
         rows: rows.map((r) => ({
@@ -102,6 +104,7 @@ export async function GET(request: Request) {
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
       SELECT p.id AS user_id, p.full_name, p.role, ${counts}
       FROM (${activity}) a
+      ${activeOnly ? Prisma.sql`JOIN demands d ON d.id = a.demand_id AND COALESCE(d.status, '') NOT IN ('Closure', 'Cancelled')` : Prisma.empty}
       JOIN profiles p ON p.id = a.user_id
       GROUP BY p.id, p.full_name, p.role
       ORDER BY COUNT(*) DESC, p.full_name`;
@@ -109,6 +112,7 @@ export async function GET(request: Request) {
       level: 'user',
       from,
       to,
+      activeOnly,
       can_see_all: true,
       rows: rows.map((r) => ({ user_id: r.user_id as string, name: r.full_name as string, role: r.role as string, counts: toCounts(r) })),
     });

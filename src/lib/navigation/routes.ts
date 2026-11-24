@@ -90,6 +90,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'demand_types', href: '/master-data/demand-types', label: 'Demand Type', icon: 'fa-shapes' },
       { id: 'interview_statuses', href: '/master-data/interview-statuses', label: 'Interview Status Management', icon: 'fa-clipboard-check' },
       { id: 'onboarding_documents', href: '/master-data/onboarding-documents', label: 'Onboarding Steps', icon: 'fa-list-check' },
+      { id: 'working_days', href: '/master-data/working-days', label: 'Working Days', icon: 'fa-calendar-days' },
     ],
   },
   {

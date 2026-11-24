@@ -131,6 +131,7 @@ export interface DemandCandidateDetail {
   events: SubmissionEvent[];
   interviews: DemandInterview[];
   otherDemands: any[];
+  similarDemands?: any[];
 }
 
 export async function getDemandCandidateDetail(requestId: string, dcId: string): Promise<DemandCandidateDetail> {
@@ -455,11 +456,12 @@ export async function getDemandCallLogs(requestId: string): Promise<{ calls: Dem
 }
 
 export interface LogDemandCallResult {
-  call: { id: string; outcome: string };
+  call: { id: string; outcome: string; skill_group_id?: string | null };
   candidate_id: string;
   reused_existing_candidate: boolean;
   /** Demand Match: whether this user may edit the candidate in the follow-up form. */
   can_edit_candidate: boolean;
+  skill_group_id?: string | null;
 }
 
 export async function logDemandCall(requestId: string, payload: unknown): Promise<LogDemandCallResult> {

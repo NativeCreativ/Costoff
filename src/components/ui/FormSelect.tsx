@@ -36,14 +36,15 @@ interface FormSelectProps {
    * behaviour of every other select is untouched.
    */
   onCloseAutoFocus?: (event: Event) => void;
+  className?: string;
 }
 
-export function FormSelect({ label, required, options, value, onChange, small, placeholder, disabled, error, allowClear, clearLabel, onCloseAutoFocus }: FormSelectProps) {
+export function FormSelect({ label, required, options, value, onChange, small, placeholder, disabled, error, allowClear, clearLabel, onCloseAutoFocus, className }: FormSelectProps) {
   const selectValue = allowClear && value === '' ? EMPTY_OPTION_VALUE : value;
   const handleValueChange = (next: string) => onChange(next === EMPTY_OPTION_VALUE ? '' : next);
 
   return (
-    <div>
+    <div className={className}>
       {label && (
         <label className={`mb-1 block font-semibold text-[#475569] ${small ? 'text-[0.78rem]' : 'text-[0.8rem]'}`}>
           {label}{required && <span className="text-[#dc2626]"> *</span>}

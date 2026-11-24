@@ -66,6 +66,8 @@ export const companySchema = z.object({
   country: z.string().trim().max(100).optional().or(z.literal('')),
   other_details: z.string().trim().max(5000).optional().or(z.literal('')),
   status: z.enum(COMPANY_STATUS_VALUES).optional(),
+  max_submissions_per_position: z.number().int().min(1, 'Must be at least 1').optional().nullable(),
+  rate_conversion_formula: z.any().optional().nullable(),
   /**
    * Optional company-level Account Manager. A profiles.id whose role is 'account_manager' —
    * validated server-side. Omitted, empty or cleared means "no AM": a company created before
@@ -95,7 +97,7 @@ export const companySchema = z.object({
     )
     .optional(),
 });
-export type CompanyFormValues = z.infer<typeof companySchema>;
+export type CompanyApiValues = z.infer<typeof companySchema>;
 
 /**
  * Form-side variant, following the project's existing convention (clientSchema, demandSchema):
@@ -113,6 +115,8 @@ export const companyFormSchema = z.object({
   country: z.string().trim().max(100),
   other_details: z.string().trim().max(5000, 'Keep this to 5000 characters or fewer'),
   status: z.enum(COMPANY_STATUS_VALUES),
+  max_submissions_per_position: z.number().int().min(1, 'Must be at least 1'),
+  rate_conversion_formula: z.any().optional().nullable(),
   spocs: clientSpocListSchema,
 });
 export type CompanyFormSchemaValues = z.infer<typeof companyFormSchema>;

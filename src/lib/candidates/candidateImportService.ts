@@ -151,7 +151,7 @@ export async function resolveCandidateImportRow(
 
     let tracker = ctx.demandCapByDemandId.get(demand.id);
     if (!tracker) {
-      const status = await getResumeCapStatus(demand.id, demand.num_positions);
+      const status = await getResumeCapStatus(demand.id, demand.num_positions, demand.company_id);
       tracker = { cap: status.cap, current: status.current };
       ctx.demandCapByDemandId.set(demand.id, tracker);
     }

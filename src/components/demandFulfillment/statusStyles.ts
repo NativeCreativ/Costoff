@@ -3,6 +3,7 @@ import type { SubmissionStatus } from '@/lib/demandFulfillment/constants';
 export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
   sourced: 'Sourced',
   submitted_to_spoc: 'Submitted to SPOC',
+  submitted_to_am: 'Submitted to AM',
   shortlisted_internal: 'Shortlisted (Internal)',
   sent_to_customer: 'Sent to Customer',
   customer_shortlisted: 'Customer Shortlisted',
@@ -24,6 +25,7 @@ export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
 export const PIPELINE_KANBAN_COLUMNS: SubmissionStatus[] = [
   'sourced',
   'submitted_to_spoc',
+  'submitted_to_am',
   'shortlisted_internal',
   'sent_to_customer',
   'customer_shortlisted',
@@ -39,6 +41,7 @@ export const PIPELINE_KANBAN_COLUMNS: SubmissionStatus[] = [
 export const SUBMISSION_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   sourced: { bg: '#f0f9ff', text: '#0369a1' },
   submitted_to_spoc: { bg: '#fef3c7', text: '#92400e' },
+  submitted_to_am: { bg: '#fef3c7', text: '#92400e' },
   shortlisted_internal: { bg: '#f5f3ff', text: '#7c3aed' },
   sent_to_customer: { bg: '#eff6ff', text: '#1d4ed8' },
   customer_shortlisted: { bg: '#ecfdf5', text: '#065f46' },

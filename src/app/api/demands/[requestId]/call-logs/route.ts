@@ -181,10 +181,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ req
     const access = await loadCandidateAccessContext(candidateId);
     return NextResponse.json({
       success: true,
-      call: { id: call.id, outcome: call.outcome },
+      call: { id: call.id, outcome: call.outcome, skill_group_id: call.skill_group_id },
       candidate_id: candidateId,
       reused_existing_candidate: reusedExisting,
       can_edit_candidate: !!access && canEditCandidate(actor, access),
+      skill_group_id: call.skill_group_id,
     });
   } catch (error) {
     if (error instanceof AuthError) {

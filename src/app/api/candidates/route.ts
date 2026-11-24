@@ -383,7 +383,7 @@ export async function POST(request: Request) {
         const created = await prisma.$transaction(async (tx) => {
           const candidate = await tx.candidates.create({ data: newCandidate });
           const { nextSourcingType } = await import('@/lib/demandFulfillment/sourcingSlots');
-          const sourcingType = await nextSourcingType(tx, demandId, linkedDemand.num_positions);
+          const sourcingType = await nextSourcingType(tx, demandId, linkedDemand.num_positions, linkedDemand.company_id);
           const submission = await tx.submissions.create({
             data: {
               demand_id: demandId,

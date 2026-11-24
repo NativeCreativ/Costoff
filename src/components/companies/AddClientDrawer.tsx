@@ -38,6 +38,7 @@ const EMPTY_FORM: CompanyFormValues = {
   country: '',
   other_details: '',
   status: 'ACTIVE',
+  max_submissions_per_position: 5,
   spocs: [],
 };
 

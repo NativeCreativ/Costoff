@@ -14,26 +14,113 @@ import { useTodaysInterviewsReport } from '@/queries/reports/useReports';
  * drill into just those interviews; each row opens the demand's Selection tab.
  */
 export function TodaysInterviewsReportView() {
-  const [date, setDate] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const query = useTodaysInterviewsReport(date);
+  const [activeOnly, setActiveOnly] = useState<boolean>(false);
+
+  const query = useTodaysInterviewsReport({
+    startDate: startDate || null,
+    endDate: endDate || null,
+    activeOnly,
+  });
+
   const data = query.data;
-  const rows = (data?.interviews ?? []).filter((iv) => !status || iv.status === status);
+
+  // Filter rows by status and optionally by the drilled-down day
+  const rows = (data?.interviews ?? []).filter((iv) => {
+    if (selectedDay && iv.scheduled_date && iv.scheduled_date !== selectedDay) return false;
+    if (status && iv.status !== status) return false;
+    return true;
+  });
+
+  const isRange = !!(startDate && endDate && startDate !== endDate);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="flex flex-col text-[0.72rem] font-semibold text-[#64748b]">
-          Date
-          <Input
-            type="date"
-            className="h-9 w-[170px]"
-            value={date ?? data?.date ?? ''}
-            onChange={(e) => { setDate(e.target.value || null); setStatus(null); }}
-          />
-        </label>
-        {data && <span className="text-[0.8rem] text-[#475569]">{data.total} interview{data.total === 1 ? '' : 's'} on {formatScheduledDate(data.date)}</span>}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex flex-col text-[0.72rem] font-semibold text-[#64748b]">
+            From Date
+            <Input
+              type="date"
+              className="h-9 w-[150px] bg-white"
+              value={startDate ?? data?.startDate ?? data?.date ?? ''}
+              onChange={(e) => {
+                setStartDate(e.target.value || null);
+                setSelectedDay(null);
+                setStatus(null);
+              }}
+            />
+          </label>
+          <label className="flex flex-col text-[0.72rem] font-semibold text-[#64748b]">
+            To Date
+            <Input
+              type="date"
+              className="h-9 w-[150px] bg-white"
+              value={endDate ?? data?.endDate ?? data?.date ?? ''}
+              onChange={(e) => {
+                setEndDate(e.target.value || null);
+                setSelectedDay(null);
+                setStatus(null);
+              }}
+            />
+          </label>
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-[0.8rem] font-medium text-[#475569]">
+            <input
+              type="checkbox"
+              checked={activeOnly}
+              onChange={(e) => setActiveOnly(e.target.checked)}
+              className="h-4 w-4 rounded border-[#cbd5e1] text-[#2563eb]"
+            />
+            Active demands only
+          </label>
+        </div>
+
+        {data && (
+          <span className="text-[0.8rem] font-medium text-[#475569]">
+            {data.total} interview{data.total === 1 ? '' : 's'} across {data.dailyCounts?.length ?? 1} day(s)
+          </span>
+        )}
       </div>
+
+      {/* Review Comment 16: Daily Breakdown Bar in Date Range */}
+      {data && data.dailyCounts && data.dailyCounts.length > 1 && (
+        <div className="flex flex-col gap-1.5">
+          <div className="text-[0.72rem] font-bold uppercase tracking-[0.05em] text-[#64748b]">
+            Daily Breakdown (Click to drill in)
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedDay(null)}
+              className={cn(
+                'rounded-lg border px-3 py-1.5 text-left text-xs transition-all',
+                !selectedDay ? 'border-[#2563eb] bg-[#eff6ff] text-[#1e40af] font-semibold' : 'border-[#e2e8f0] bg-white text-[#475569] hover:bg-[#f8fafc]'
+              )}
+            >
+              All Days ({data.total})
+            </button>
+            {data.dailyCounts.map((d) => (
+              <button
+                key={d.date}
+                type="button"
+                onClick={() => setSelectedDay(selectedDay === d.date ? null : d.date)}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs transition-all',
+                  selectedDay === d.date ? 'border-[#2563eb] bg-[#eff6ff] text-[#1e40af] font-semibold shadow-sm' : 'border-[#e2e8f0] bg-white text-[#475569] hover:bg-[#f8fafc]'
+                )}
+              >
+                <span>{formatScheduledDate(d.date)}</span>
+                <Badge className="border-transparent bg-[#f1f5f9] px-1.5 py-0 text-[0.65rem] font-bold text-[#2563eb]">
+                  {d.count}
+                </Badge>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {data && data.summary.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
@@ -44,14 +131,14 @@ export function TodaysInterviewsReportView() {
             className={cn('rounded-lg border px-3 py-2 text-left', !status ? 'border-[#2563eb] bg-[#eff6ff]' : 'border-[#e2e8f0] bg-white hover:bg-[#f8fafc]')}
           >
             <div className="text-[1.1rem] font-bold text-[#0f172a]">{data.total}</div>
-            <div className="text-[0.72rem] font-semibold text-[#64748b]">All</div>
+            <div className="text-[0.72rem] font-semibold text-[#64748b]">All Statuses</div>
           </button>
           {data.summary.map((s) => (
             <button
               key={s.status}
               type="button"
               aria-pressed={status === s.status}
-              onClick={() => setStatus(s.status)}
+              onClick={() => setStatus(status === s.status ? null : s.status)}
               className={cn('rounded-lg border px-3 py-2 text-left', status === s.status ? 'border-[#2563eb] bg-[#eff6ff]' : 'border-[#e2e8f0] bg-white hover:bg-[#f8fafc]')}
             >
               <div className="text-[1.1rem] font-bold text-[#0f172a]">{s.count}</div>

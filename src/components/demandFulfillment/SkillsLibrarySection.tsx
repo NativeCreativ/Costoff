@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Loader } from '@/components/ui/Loader';
 import { SettingsItemRowActions } from '@/components/interviewRounds/SettingsItemRowActions';
 import { useSkillsLibraryQueryIncludeInactive } from '@/queries/settings/useSkillsLibraryQueries';
+import { useNamedMasterQuery } from '@/queries/masterData/useMasterData';
+import { FormSelect } from '@/components/ui/FormSelect';
+import { Badge } from '@/components/ui/badge';
 import {
   useCreateSkillCategoryMutation,
   useRenameSkillCategoryMutation,
@@ -61,10 +64,20 @@ export function SkillsLibrarySection() {
 
   const [addingSkill, setAddingSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillClassificationId, setNewSkillClassificationId] = useState('');
+  const [newSkillType, setNewSkillType] = useState<'mandatory' | 'optional'>('optional');
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
   const [editSkillName, setEditSkillName] = useState('');
+  const [editSkillClassificationId, setEditSkillClassificationId] = useState('');
+  const [editSkillType, setEditSkillType] = useState<'mandatory' | 'optional'>('optional');
   const [dragSkillId, setDragSkillId] = useState<string | null>(null);
   const [localSkillOrder, setLocalSkillOrder] = useState<SkillCategory['skills'] | null>(null);
+
+  const classifications = useNamedMasterQuery('skill-classifications');
+  const classificationOptions = (classifications.data ?? [])
+    .filter((c) => c.is_active !== false)
+    .map((c) => ({ value: c.id, label: c.name }));
+  const classificationMap = new Map((classifications.data ?? []).map((c) => [c.id, c.name]));
 
   const categories = localCategoryOrder ?? libraryQuery.data ?? [];
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId) ?? null;
@@ -140,8 +153,18 @@ export function SkillsLibrarySection() {
     if (!selectedCategory) return;
     const name = newSkillName.trim();
     if (!name) { setError('Skill name is required'); return; }
-    createSkill.mutate({ categoryId: selectedCategory.id, name }, {
-      onSuccess: () => { setAddingSkill(false); setNewSkillName(''); },
+    createSkill.mutate({
+      categoryId: selectedCategory.id,
+      name,
+      classification_id: newSkillClassificationId || null,
+      skill_type: newSkillType,
+    }, {
+      onSuccess: () => {
+        setAddingSkill(false);
+        setNewSkillName('');
+        setNewSkillClassificationId('');
+        setNewSkillType('optional');
+      },
       onError: (err) => setError(errorMessage(err, 'Failed to create skill')),
     });
   };
@@ -150,7 +173,12 @@ export function SkillsLibrarySection() {
     setError(null);
     const name = editSkillName.trim();
     if (!name) { setError('Skill name is required'); return; }
-    renameSkill.mutate({ id, name }, {
+    renameSkill.mutate({
+      id,
+      name,
+      classification_id: editSkillClassificationId || null,
+      skill_type: editSkillType,
+    }, {
       onSuccess: () => setEditingSkillId(null),
       onError: (err) => setError(errorMessage(err, 'Failed to rename skill')),
     });
@@ -304,28 +332,67 @@ export function SkillsLibrarySection() {
                   >
                     <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-[#cbd5e1]" />
                     {editingSkillId === s.id ? (
-                      <>
-                        <Input
-                          autoFocus
-                          value={editSkillName}
-                          onChange={(e) => setEditSkillName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') { e.preventDefault(); saveRenameSkill(s.id); }
-                            else if (e.key === 'Escape') setEditingSkillId(null);
-                          }}
-                          maxLength={40}
-                          className="h-auto flex-1 rounded-md border-[#e2e8f0] bg-white px-2 py-1 text-[0.82rem] shadow-none"
-                        />
-                        <button onClick={() => saveRenameSkill(s.id)} className="shrink-0 text-[#16a34a] hover:text-[#15803d]"><Check className="h-4 w-4" /></button>
-                        <button onClick={() => setEditingSkillId(null)} className="shrink-0 text-[#94a3b8] hover:text-[#475569]"><X className="h-4 w-4" /></button>
-                      </>
+                      <div className="flex w-full flex-col gap-2 py-1">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            autoFocus
+                            value={editSkillName}
+                            onChange={(e) => setEditSkillName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { e.preventDefault(); saveRenameSkill(s.id); }
+                              else if (e.key === 'Escape') setEditingSkillId(null);
+                            }}
+                            maxLength={40}
+                            placeholder="Skill name"
+                            className="h-auto flex-1 rounded-md border-[#e2e8f0] bg-white px-2 py-1 text-[0.82rem] shadow-none"
+                          />
+                          <button onClick={() => saveRenameSkill(s.id)} className="shrink-0 text-[#16a34a] hover:text-[#15803d]"><Check className="h-4 w-4" /></button>
+                          <button onClick={() => setEditingSkillId(null)} className="shrink-0 text-[#94a3b8] hover:text-[#475569]"><X className="h-4 w-4" /></button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FormSelect
+                            value={editSkillClassificationId}
+                            onChange={(val) => setEditSkillClassificationId(val)}
+                            options={classificationOptions}
+                            placeholder="Skill category"
+                            allowClear
+                            clearLabel="No category"
+                            className="min-w-[150px] flex-1 text-[0.78rem]"
+                          />
+                          <FormSelect
+                            value={editSkillType}
+                            onChange={(val) => setEditSkillType(val === 'mandatory' ? 'mandatory' : 'optional')}
+                            options={[
+                              { value: 'mandatory', label: 'Mandatory' },
+                              { value: 'optional', label: 'Optional' },
+                            ]}
+                            className="min-w-[110px] text-[0.78rem]"
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <>
-                        <span className="flex-1 truncate text-[0.83rem] text-[#334155]">{s.name}</span>
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <span className="truncate text-[0.83rem] font-medium text-[#334155]">{s.name}</span>
+                          {s.classification_id && classificationMap.get(s.classification_id) && (
+                            <Badge variant="outline" className="border-[#cbd5e1] text-[0.7rem] text-[#64748b]">
+                              {classificationMap.get(s.classification_id)}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className={`text-[0.7rem] ${s.skill_type === 'mandatory' ? 'border-[#fed7aa] bg-[#fff7ed] text-[#c2410c]' : 'border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]'}`}>
+                            {s.skill_type === 'mandatory' ? 'Mandatory' : 'Optional'}
+                          </Badge>
+                        </div>
                         <SettingsItemRowActions
                           name={s.name}
                           isActive={s.is_active}
-                          onEdit={() => { setEditingSkillId(s.id); setEditSkillName(s.name); setError(null); }}
+                          onEdit={() => {
+                            setEditingSkillId(s.id);
+                            setEditSkillName(s.name);
+                            setEditSkillClassificationId(s.classification_id || '');
+                            setEditSkillType(s.skill_type === 'mandatory' ? 'mandatory' : 'optional');
+                            setError(null);
+                          }}
                           onDelete={() => confirmDeleteSkill(s.id)}
                           onToggle={() => toggleSkill.mutate({ id: s.id, isActive: !s.is_active })}
                           pending={toggleSkill.isPending}
@@ -337,21 +404,55 @@ export function SkillsLibrarySection() {
               </div>
 
               {addingSkill ? (
-                <div className="mt-2 flex items-center gap-2 rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-2.5 py-2">
-                  <Input
-                    autoFocus
-                    value={newSkillName}
-                    onChange={(e) => setNewSkillName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); saveNewSkill(); }
-                      else if (e.key === 'Escape') { setAddingSkill(false); setNewSkillName(''); setError(null); }
-                    }}
-                    maxLength={40}
-                    placeholder="Skill name (e.g. React)"
-                    className="h-auto flex-1 rounded-md border-[#e2e8f0] bg-white px-2 py-1 text-[0.82rem] shadow-none"
-                  />
-                  <button onClick={saveNewSkill} disabled={createSkill.isPending} className="shrink-0 text-[#16a34a] hover:text-[#15803d]"><Check className="h-4 w-4" /></button>
-                  <button onClick={() => { setAddingSkill(false); setNewSkillName(''); setError(null); }} className="shrink-0 text-[#94a3b8] hover:text-[#475569]"><X className="h-4 w-4" /></button>
+                <div className="mt-2 flex flex-col gap-2 rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-2.5 py-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      autoFocus
+                      value={newSkillName}
+                      onChange={(e) => setNewSkillName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); saveNewSkill(); }
+                        else if (e.key === 'Escape') {
+                          setAddingSkill(false);
+                          setNewSkillName('');
+                          setNewSkillClassificationId('');
+                          setNewSkillType('optional');
+                          setError(null);
+                        }
+                      }}
+                      maxLength={40}
+                      placeholder="Skill name (e.g. React)"
+                      className="h-auto flex-1 rounded-md border-[#e2e8f0] bg-white px-2 py-1 text-[0.82rem] shadow-none"
+                    />
+                    <button onClick={saveNewSkill} disabled={createSkill.isPending} className="shrink-0 text-[#16a34a] hover:text-[#15803d]"><Check className="h-4 w-4" /></button>
+                    <button onClick={() => {
+                      setAddingSkill(false);
+                      setNewSkillName('');
+                      setNewSkillClassificationId('');
+                      setNewSkillType('optional');
+                      setError(null);
+                    }} className="shrink-0 text-[#94a3b8] hover:text-[#475569]"><X className="h-4 w-4" /></button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FormSelect
+                      value={newSkillClassificationId}
+                      onChange={(val) => setNewSkillClassificationId(val)}
+                      options={classificationOptions}
+                      placeholder="Skill category (Technical, Domain...)"
+                      allowClear
+                      clearLabel="No category"
+                      className="min-w-[150px] flex-1 text-[0.78rem]"
+                    />
+                    <FormSelect
+                      value={newSkillType}
+                      onChange={(val) => setNewSkillType(val === 'mandatory' ? 'mandatory' : 'optional')}
+                      options={[
+                        { value: 'mandatory', label: 'Mandatory' },
+                        { value: 'optional', label: 'Optional' },
+                      ]}
+                      className="min-w-[110px] text-[0.78rem]"
+                    />
+                  </div>
                 </div>
               ) : (
                 <Button size="sm" variant="outline" onClick={() => { setAddingSkill(true); setError(null); }} className="mt-2 gap-1.5">

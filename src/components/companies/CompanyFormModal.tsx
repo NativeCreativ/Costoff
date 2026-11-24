@@ -21,7 +21,9 @@ import type { Company, ClientSpoc as CompanySpoc } from '@/components/types';
 
 const EMPTY_FORM: CompanyFormValues = {
   name: '', email: '', phone: '', website: '',
-  address: '', city: '', state: '', country: '', other_details: '', status: 'ACTIVE', spocs: [],
+  address: '', city: '', state: '', country: '', other_details: '', status: 'ACTIVE', max_submissions_per_position: 5,
+  rate_conversion_formula: undefined,
+  spocs: [],
 };
 
 const toStatus = (value?: string | null): CompanyFormValues['status'] =>
@@ -100,6 +102,8 @@ export function CompanyFormModal({
         country: company.country || '',
         other_details: company.other_details || '',
         status: toStatus(company.status),
+        max_submissions_per_position: company.max_submissions_per_position ?? 5,
+        rate_conversion_formula: (company as any).rate_conversion_formula ?? undefined,
         spocs: spocsOf(company),
       }
     : mode === 'edit' && editingCompany
@@ -114,6 +118,8 @@ export function CompanyFormModal({
         country: editingCompany.country || '',
         other_details: editingCompany.other_details || '',
         status: toStatus(editingCompany.status),
+        max_submissions_per_position: editingCompany.max_submissions_per_position ?? 5,
+        rate_conversion_formula: (editingCompany as any).rate_conversion_formula ?? undefined,
         spocs: spocsOf(editingCompany),
       }
     : EMPTY_FORM;
@@ -296,6 +302,7 @@ export function CompanyViewModal({ company, onClose }: { company: Company; onClo
       rows: [
         ['Client Name', c.client_name || c.name],
         ['Status', c.status],
+        ['Max Submissions per Position', c.max_submissions_per_position ?? 5],
         ['SPOCs', (c.company_spocs ?? []).map((spoc) => spoc.name).join(', ') || '—'],
         ['Linked Demands', linkedDemands],
       ],
@@ -428,6 +435,21 @@ export function CompanyViewModal({ company, onClose }: { company: Company; onClo
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[10px] border border-[#e2e8f0] bg-white p-4">
+              <div className="mb-1.5 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#2563eb]">
+                Rate to CTC Conversion Formula
+              </div>
+              {(c as any).rate_conversion_formula?.expression ? (
+                <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-[0.85rem] text-[#0f172a]">
+                  <code>{(c as any).rate_conversion_formula.expression}</code>
+                </div>
+              ) : (
+                <div className="text-[0.8rem] text-[#94a3b8]">
+                  Default formula: <code>[daily_rate] * [working_days] * 12</code>
                 </div>
               )}
             </div>

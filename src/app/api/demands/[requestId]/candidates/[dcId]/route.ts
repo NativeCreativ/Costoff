@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth, AuthError } from '@/lib/auth/session';
 import { canViewDemand } from '@/lib/auth/demandPermissions';
-import { canManageDemandPipeline } from '@/lib/auth/demandFulfillmentPermissions';
+import { canManageDemandPipeline, canToggleSourcingType } from '@/lib/auth/demandFulfillmentPermissions';
 import { loadDemandContext } from '@/lib/demandFulfillment/loadDemandContext';
 import { canEditAsRecordCreator, creatorEditBlockMessage } from '@/lib/auth/creatorScope';
 import { recruiterProfileIds } from '@/lib/auth/recruiterRole';
 import { serializeInterview } from '@/lib/serializeInterview';
+import { getSimilarDemandsForCandidate } from '@/lib/demands/similarDemands';
 
 function toNum(v: unknown) {
   if (v === null || v === undefined) return null;
@@ -46,7 +47,7 @@ export async function GET(
       return NextResponse.json({ error: 'Candidate not found in this demand' }, { status: 404 });
     }
 
-    const [events, interviews, otherDemands] = await Promise.all([
+    const [events, interviews, otherDemands, similarDemands] = await Promise.all([
       prisma.submission_events.findMany({
         where: { submission_id: dcId },
         include: { profiles: { select: { id: true, full_name: true, role: true } } },
@@ -71,6 +72,7 @@ export async function GET(
         },
         orderBy: { created_at: 'desc' },
       }),
+      submission.candidate_id ? getSimilarDemandsForCandidate(submission.candidate_id, demandId, 5) : Promise.resolve([]),
     ]);
 
     // Per-actor flags so the panel can DISABLE (not hide) the pipeline actions it would
@@ -118,6 +120,7 @@ export async function GET(
         return { ...serializeInterview(iv), can_manage: blocked == null, manage_blocked_reason: blocked };
       }),
       otherDemands,
+      similarDemands,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -128,7 +131,7 @@ export async function GET(
   }
 }
 
-/** PATCH sourcing type (Active / Backup). The cap still auto-assigns it; this is the manual override. */
+/** PATCH sourcing type (Active / Backup). The cap still auto-assigns it; this is the manual override (Review Comment 15). */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ requestId: string; dcId: string }> }
@@ -138,17 +141,38 @@ export async function PATCH(
     const { requestId, dcId } = await params;
     const demand = await loadDemandContext(requestId);
     if (!demand) return NextResponse.json({ error: 'Demand not found' }, { status: 404 });
-    if (!canManageDemandPipeline({ role: currentUser.role, id: currentUser.userId }, demand, demand.recruiterIds)) {
-      return NextResponse.json({ error: 'You do not have permission to update this profile' }, { status: 403 });
+
+    const existing = await prisma.submissions.findFirst({ where: { id: dcId, demand_id: demand.id } });
+    if (!existing) return NextResponse.json({ error: 'Candidate not found in this demand' }, { status: 404 });
+
+    if (!canToggleSourcingType({ role: currentUser.role, id: currentUser.userId }, demand, demand.recruiterIds, existing)) {
+      return NextResponse.json({ error: 'You do not have permission to update sourcing type' }, { status: 403 });
     }
+
     const body = await request.json();
     const sourcingType = body?.sourcing_type;
     if (sourcingType !== 'active' && sourcingType !== 'backup') {
       return NextResponse.json({ error: 'sourcing_type must be active or backup' }, { status: 400 });
     }
-    const existing = await prisma.submissions.findFirst({ where: { id: dcId, demand_id: demand.id } });
-    if (!existing) return NextResponse.json({ error: 'Candidate not found in this demand' }, { status: 404 });
-    const updated = await prisma.submissions.update({ where: { id: dcId }, data: { sourcing_type: sourcingType } });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.submissions.update({
+        where: { id: dcId },
+        data: { sourcing_type: sourcingType, updated_at: new Date() },
+      });
+      await tx.submission_events.create({
+        data: {
+          submission_id: dcId,
+          event_type: 'status_change',
+          from_status: existing.current_status,
+          to_status: existing.current_status,
+          content: `Sourcing type changed from ${existing.sourcing_type ?? 'active'} to ${sourcingType}`,
+          created_by: currentUser.userId,
+        },
+      });
+      return result;
+    });
+
     return NextResponse.json({ submission: updated, success: true });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -10,6 +10,7 @@ import { Loader } from '@/components/ui/Loader';
 import { PipelineKanbanBoard } from './PipelineKanbanBoard';
 import { SearchExistingCandidateModal, CreateCandidateForDemandModal } from './AddCandidateModal';
 import { CandidateDetailPanel } from './CandidateDetailPanel';
+import { CandidateInterviewDrawer } from './CandidateInterviewDrawer';
 import { RemarkDialog } from './RemarkDialog';
 import { useDemandCandidatesQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
 import { useChangeSubmissionStatusMutation } from '@/queries/demandFulfillment/useDemandFulfillmentMutations';
@@ -47,6 +48,7 @@ export function DemandPipelineTab({ requestId, canManage, canManageInterviews, r
   const [showSearchExistingModal, setShowSearchExistingModal] = useState(false);
   const [showCreateCandidateModal, setShowCreateCandidateModal] = useState(false);
   const [selectedDcId, setSelectedDcId] = useState<string | null>(null);
+  const [interviewDc, setInterviewDc] = useState<DemandCandidate | null>(null);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [dropError, setDropError] = useState<string | null>(null);
   const [failedMoves, setFailedMoves] = useState<FailedMove[]>([]);
@@ -213,6 +215,7 @@ export function DemandPipelineTab({ requestId, canManage, canManageInterviews, r
           candidates={candidates}
           canManage={canManage}
           onCardClick={(dc) => setSelectedDcId(dc.id)}
+          onOpenInterview={(dc) => setInterviewDc(dc)}
           onDropOnColumn={handleSingleDrop}
           onDropMultipleOnColumn={handleMultipleDrop}
           selectedIds={selectedIds}
@@ -258,6 +261,16 @@ export function DemandPipelineTab({ requestId, canManage, canManageInterviews, r
 
       {selectedDcId && (
         <CandidateDetailPanel requestId={requestId} dcId={selectedDcId} canManage={canManage} canManageInterviews={canManageInterviews} onClose={() => setSelectedDcId(null)} />
+      )}
+
+      {interviewDc && (
+        <CandidateInterviewDrawer
+          open={true}
+          onClose={() => setInterviewDc(null)}
+          requestId={requestId}
+          dcId={interviewDc.id}
+          candidateName={interviewDc.candidates?.full_name}
+        />
       )}
 
       {pendingDrop && (

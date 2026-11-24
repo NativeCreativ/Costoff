@@ -2,14 +2,23 @@ import { prisma } from '@/lib/db/prisma';
 import { DEFAULT_RESUME_CAP_PER_POSITION, SUPER_ADMIN_SETTINGS_KEYS } from './constants';
 
 /**
- * Resolves the per-position resume cap for a demand: demand-level override (none
- * currently modeled — demands.num_positions is the only demand-specific knob) falls
- * back to the global super_admin_settings value, then the hardcoded default.
+ * Resolves the per-position resume cap for a demand: client-level override (companies.max_submissions_per_position)
+ * takes precedence, falling back to global super_admin_settings value, then the hardcoded default (5).
  *
  * Cap = num_positions * resume_cap_per_position, e.g. 4 positions x 5 = 20 active profiles.
  * Further uploads are kept as Backup rather than rejected.
  */
-export async function getResumeCapPerPosition(): Promise<number> {
+export async function getResumeCapPerPosition(companyId?: string | null): Promise<number> {
+  if (companyId) {
+    const company = await prisma.companies.findUnique({
+      where: { id: companyId },
+      select: { max_submissions_per_position: true },
+    });
+    if (company?.max_submissions_per_position != null && company.max_submissions_per_position > 0) {
+      return company.max_submissions_per_position;
+    }
+  }
+
   const setting = await prisma.super_admin_settings.findUnique({
     where: { key: SUPER_ADMIN_SETTINGS_KEYS.resumeCapPerPosition },
   });
@@ -26,12 +35,28 @@ export interface ResumeCapStatus {
   reached: boolean;
 }
 
-/** Counts only *active* candidate-in-demand rows (rejected/dropped candidates free up a cap slot). */
-export async function getResumeCapStatus(demandId: string, numPositions: number | null | undefined): Promise<ResumeCapStatus> {
-  const capPerPosition = await getResumeCapPerPosition();
+/** Counts only *active* candidate-in-demand rows (backup profiles and rejected/dropped candidates do not fill active slots). */
+export async function getResumeCapStatus(
+  demandId: string,
+  numPositions: number | null | undefined,
+  companyId?: string | null
+): Promise<ResumeCapStatus> {
+  let resolvedCompanyId = companyId;
+  if (resolvedCompanyId === undefined) {
+    const demand = await prisma.demands.findUnique({
+      where: { id: demandId },
+      select: { company_id: true },
+    });
+    resolvedCompanyId = demand?.company_id ?? null;
+  }
+  const capPerPosition = await getResumeCapPerPosition(resolvedCompanyId);
   const cap = Math.max(1, numPositions ?? 1) * capPerPosition;
   const current = await prisma.submissions.count({
-    where: { demand_id: demandId, is_active: true },
+    where: {
+      demand_id: demandId,
+      is_active: true,
+      OR: [{ sourcing_type: 'active' }, { sourcing_type: null }],
+    },
   });
   return { cap, current, reached: current >= cap };
 }

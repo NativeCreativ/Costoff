@@ -171,6 +171,7 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
     compensation_max: demand.compensation_max || '',
     locations: demand.locations || [],
     num_positions: demand.num_positions || 1,
+    is_niche: demand.is_niche ?? false,
     contact_profile_id: demand.contact_profile_id || '',
     spoc_profile_id: demand.spoc_profile_id || '',
     recruiter_ids: demand.recruiter_ids || [],

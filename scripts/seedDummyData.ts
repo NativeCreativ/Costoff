@@ -38,6 +38,7 @@ const CURRENCIES = [
 const COMP_TYPES = [
   { name: 'Yearly', sort_order: 1 },
   { name: 'Monthly', sort_order: 2 },
+  { name: 'Hourly', sort_order: 3 },
 ];
 
 // ───────────────────────── Demands ─────────────────────────

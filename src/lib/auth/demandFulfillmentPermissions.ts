@@ -128,6 +128,45 @@ export function canReviewSourcedProfile(actor: FulfillmentActor, demand: DemandO
 }
 
 /**
+ * Step 1 of Niche Demand Dual Approval: SPOC (or Super Admin) reviews and forwards to AM.
+ */
+export function canSpocReviewProfile(actor: FulfillmentActor, demand: DemandOwnershipFields): boolean {
+  if (actor.role === 'super_admin') return true;
+  if (actor.role === 'spoc') return !!actor.id && demand.spoc_profile_id === actor.id;
+  return false;
+}
+
+/**
+ * Step 2 of Niche Demand Dual Approval: Account Manager (or Super Admin) reviews and shortlists.
+ */
+export function canAmReviewProfile(actor: FulfillmentActor, demand: DemandOwnershipFields): boolean {
+  if (actor.role === 'super_admin') return true;
+  if (actor.role === 'account_manager') return isCurrentAccountManager(actor, demand);
+  return false;
+}
+
+/**
+ * Who can toggle a candidate's sourcing_type between 'active' and 'backup' (Review Comment 15):
+ * All authorized roles: Super Admin, demand's current AM, assigned SPOC, or a Recruiter (ta)
+ * allocated to the demand or who added the profile.
+ */
+export function canToggleSourcingType(
+  actor: FulfillmentActor,
+  demand: DemandOwnershipFields,
+  recruiterIds: string[],
+  submission?: { added_by?: string | null } | null
+): boolean {
+  if (actor.role === 'super_admin') return true;
+  if (actor.role === 'account_manager') return isCurrentAccountManager(actor, demand);
+  if (actor.role === 'spoc') return !!actor.id && demand.spoc_profile_id === actor.id;
+  if (actor.role === 'ta') {
+    if (!!actor.id && recruiterIds.includes(actor.id)) return true;
+    if (!!actor.id && submission?.added_by === actor.id) return true;
+  }
+  return false;
+}
+
+/**
  * Save edits to / submit a Sourcing profile: whoever manages the pipeline, or the person who
  * uploaded it (an unassigned Recruiter may upload — canUploadProfilesToDemand — and must be
  * able to submit what they uploaded).

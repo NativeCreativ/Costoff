@@ -108,6 +108,8 @@ export function buildDemandCloneForm(demand: Demand): DemandFormState {
     compensation_max: demand.compensation_max != null ? String(demand.compensation_max) : '',
     locations: Array.isArray(demand.locations) ? [...demand.locations] : [],
     num_positions: demand.num_positions || 1,
+    is_niche: demand.is_niche ?? false,
+    rate_conversion_formula: demand.rate_conversion_formula,
     contact_profile_id: demand.contact_profile_id || '',
     spoc_profile_id: demand.spoc_profile_id || '',
     recruiter_ids: Array.isArray(demand.recruiter_ids) ? [...demand.recruiter_ids] : [],

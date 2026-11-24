@@ -18,6 +18,7 @@ interface CompleteCallCandidateModalProps {
   requestId: string;
   callId: string;
   candidateId: string;
+  skillGroupId?: string | null;
   /** From the call log: may this user edit the candidate profile? */
   canEditCandidate: boolean;
   onClose: () => void;
@@ -29,7 +30,7 @@ interface CompleteCallCandidateModalProps {
  * saved profile, ready to submit). A user who may not edit someone else's profile can still put
  * it into Sourcing as it is.
  */
-export function CompleteCallCandidateModal({ requestId, callId, candidateId, canEditCandidate, onClose }: CompleteCallCandidateModalProps) {
+export function CompleteCallCandidateModal({ requestId, callId, candidateId, skillGroupId, canEditCandidate, onClose }: CompleteCallCandidateModalProps) {
   const toast = useToast();
   const history = useCandidateHistoryQuery(candidateId, true);
   const addToSourcing = useAddCallToSourcingMutation(requestId);
@@ -76,7 +77,10 @@ export function CompleteCallCandidateModal({ requestId, callId, candidateId, can
         <>
           {error && <div className="mb-3 rounded-md border border-[#fca5a5] bg-[#fee2e2] p-3 text-[0.82rem] font-semibold text-[#991b1b]">{error}</div>}
           <CandidateForm
-            defaultValues={candidateToFormState(candidate)}
+            defaultValues={{
+              ...candidateToFormState(candidate),
+              skills_category_id: skillGroupId || candidate.skills_category_id || '',
+            }}
             onSubmit={save}
             onCancel={onClose}
             submitLabel="Save & add to Sourcing"

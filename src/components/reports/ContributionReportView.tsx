@@ -23,7 +23,8 @@ export function ContributionReportView() {
   const [from, setFrom] = useState(`${today.slice(0, 8)}01`);
   const [to, setTo] = useState(today);
   const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
-  const query = useContributionReport(from, to, person?.id ?? null);
+  const [activeOnly, setActiveOnly] = useState<boolean>(true);
+  const query = useContributionReport(from, to, person?.id ?? null, activeOnly);
   const data = query.data;
 
   const cells = (counts: Record<ContributionMetric, number>) =>
@@ -41,9 +42,18 @@ export function ContributionReportView() {
               : [{ label: 'Everyone', onClick: person ? () => setPerson(null) : undefined }, ...(person ? [{ label: person.name }] : [])]
           }
         />
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="text-[0.75rem] text-[#475569]">From<Input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="h-8" /></label>
           <label className="text-[0.75rem] text-[#475569]">To<Input type="date" value={to} min={from} onChange={(e) => e.target.value && setTo(e.target.value)} className="h-8" /></label>
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-[0.8rem] text-[#475569]">
+            <input
+              type="checkbox"
+              checked={activeOnly}
+              onChange={(e) => setActiveOnly(e.target.checked)}
+              className="h-4 w-4 rounded border-[#cbd5e1] text-[#2563eb]"
+            />
+            Active demands only
+          </label>
         </div>
       </div>
 

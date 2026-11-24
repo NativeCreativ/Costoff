@@ -93,7 +93,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ requ
       ? await filterRowsByDemandSkills(rows, demand.technology_stack)
       : rows;
 
-    const capStatus = await getResumeCapStatus(demandId, demand.num_positions);
+    const capStatus = await getResumeCapStatus(demandId, demand.num_positions, demand.company_id);
 
     // Per-row `can_edit` so the pipeline can DISABLE (not hide) the candidate actions for
     // a row another recruiter added. Same creator rule (canEditAsRecordCreator) that the
@@ -219,6 +219,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ req
         attachCandidateToDemand(tx, {
           demandId,
           numPositions: demand.num_positions,
+          companyId: demand.company_id,
           candidateId: resolvedCandidateId!,
           source: finalSource,
           positionSlot: position_slot,

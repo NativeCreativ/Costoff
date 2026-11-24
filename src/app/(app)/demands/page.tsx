@@ -30,7 +30,7 @@ const emptyDemandForm: DemandFormState = {
   total_experience: '', relevant_experience: '', certifications: [],
   experience_levels: [], required_skills: [], skills_category_id: '', work_modes: ['Work On Site'],
   compensation_currency_id: '', compensation_type_id: '', compensation_min: '', compensation_max: '',
-  locations: [], num_positions: 1,
+  locations: [], num_positions: 1, is_niche: false,
   contact_profile_id: '',
   spoc_profile_id: '', recruiter_ids: [],
 };
@@ -199,6 +199,7 @@ export default function DemandsPage() {
       compensation_max: item.compensation_max ?? '',
       locations: Array.isArray(item.locations) ? item.locations : [],
       num_positions: item.num_positions || 1,
+      is_niche: item.is_niche ?? false,
       contact_profile_id: item.contact_profile_id || '',
       spoc_profile_id: item.spoc_profile_id || '',
       recruiter_ids: Array.isArray(item.recruiter_ids) ? item.recruiter_ids : [],

@@ -27,6 +27,7 @@ export async function attachCandidateToDemand(
   input: {
     demandId: string;
     numPositions: number | null | undefined;
+    companyId?: string | null;
     candidateId: string;
     source: string | undefined;
     positionSlot?: number | null;
@@ -41,7 +42,15 @@ export async function attachCandidateToDemand(
     throw new CandidateAlreadyInPipelineError(existingOnDemand.current_status);
   }
 
-  const sourcingType = await nextSourcingType(tx, input.demandId, input.numPositions);
+  let companyId = input.companyId;
+  if (companyId === undefined) {
+    const d = await tx.demands.findUnique({
+      where: { id: input.demandId },
+      select: { company_id: true },
+    });
+    companyId = d?.company_id ?? null;
+  }
+  const sourcingType = await nextSourcingType(tx, input.demandId, input.numPositions, companyId);
 
   if (existingOnDemand) {
     const reactivated = await tx.submissions.update({

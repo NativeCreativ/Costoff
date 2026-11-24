@@ -358,11 +358,15 @@ export async function GET(request: Request) {
       ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
       : Prisma.empty;
 
+    const orderByClause = currentUser.role === 'ta'
+      ? Prisma.sql`ORDER BY (${currentUser.userId}::uuid = ANY(v.recruiter_ids)) DESC, opened_at DESC`
+      : Prisma.sql`ORDER BY opened_at DESC`;
+
     const [data, countResult] = await Promise.all([
       prisma.$queryRaw<unknown[]>`
         SELECT * FROM (${DEMANDS_WITH_AGING_BASE}) v
         ${whereClause}
-        ORDER BY opened_at DESC
+        ${orderByClause}
         LIMIT ${take} OFFSET ${skip}
       `,
       prisma.$queryRaw<{ count: bigint }[]>`
@@ -612,6 +616,8 @@ export async function POST(request: Request) {
             other_details: values.other_details?.trim() || null,
             // Review batch 4: "Save as draft" keeps it private to its creator until submitted.
             is_draft: values.is_draft === true,
+            is_niche: values.is_niche === true,
+            rate_conversion_formula: (values.rate_conversion_formula as any) ?? null,
             customer_jd: values.customer_jd?.trim() || null,
             customer_jd_file_url: values.customer_jd_file_url || null,
             customer_jd_file_name: values.customer_jd_file_url ? values.customer_jd_file_name?.trim() || null : null,
@@ -1021,6 +1027,8 @@ export async function PUT(request: Request) {
     if (values.shift_timings !== undefined) updateData.shift_timings = values.shift_timings?.trim() || null;
     if (values.comments !== undefined) updateData.comments = values.comments?.trim() || null;
     if (values.other_details !== undefined) updateData.other_details = values.other_details?.trim() || null;
+    if (values.is_niche !== undefined) updateData.is_niche = values.is_niche === true;
+    if (values.rate_conversion_formula !== undefined) updateData.rate_conversion_formula = (values.rate_conversion_formula as any) ?? null;
     // Review batch 4: "Submit to team" publishes a draft. A published demand never goes back.
     const publishing = values.publish === true && existingDemand.is_draft;
     if (publishing) updateData.is_draft = false;

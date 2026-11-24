@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,8 @@ import { useDemandInterviewRounds } from '@/hooks/useDemandInterviewRounds';
 import { useDemandInterviewConfigQuery } from '@/queries/demandFulfillment/useDemandFulfillmentQueries';
 import { canManageInterviewConfig } from '@/lib/auth/demandFulfillmentPermissions';
 import { canEditDemand } from '@/lib/auth/demandPermissions';
+import { ContractRateConverterCard } from '@/components/rateConverter/ContractRateConverterCard';
+import { RateFormulaConfig, DEFAULT_RATE_FORMULA } from '@/lib/rateConverter/formulaEngine';
 import type { Demand } from '@/components/types';
 import { PRIORITY_OPTIONS, DEMAND_STATUS_OPTIONS } from '@/constants/options';
 import { useDemandTypeSkillGroupsQuery, useNamedMasterQuery } from '@/queries/masterData/useMasterData';
@@ -216,6 +218,28 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
   });
   const selectedCompanyLabel = selectedCompanyQuery.data?.client_name || selectedCompanyQuery.data?.name;
   // Edit form: the demand already carries its company's mirrored display name — no extra fetch.
+
+  // ── Rate to CTC converter formula (Review Comment 2) ─────────────────────────
+  const [demandFormula, setDemandFormula] = useState<RateFormulaConfig | null>(
+    (editingDemand?.rate_conversion_formula as RateFormulaConfig) ||
+      (defaultValues.rate_conversion_formula as RateFormulaConfig) ||
+      null
+  );
+
+  const clientFormula = (selectedCompanyQuery.data?.rate_conversion_formula as RateFormulaConfig) || null;
+
+  useEffect(() => {
+    if (isCreateMode && clientFormula && !demandFormula) {
+      setDemandFormula(clientFormula);
+      setValue('rate_conversion_formula', clientFormula, { shouldDirty: true });
+    }
+  }, [isCreateMode, clientFormula, demandFormula, setValue]);
+
+  const isContractDemand = useMemo(() => {
+    const dt = (demandType || '').toLowerCase();
+    const rc = (roleCategory || '').toLowerCase();
+    return dt.includes('contract') || dt.includes('c2h') || rc.includes('contract') || rc.includes('c2h');
+  }, [demandType, roleCategory]);
   
 
   // Couldn't load the company's rounds — toast once per failed fetch, then rely on the hook's
@@ -288,11 +312,15 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
    * (Without this, an untouched list was not sent and the demand kept inheriting the client.)
    */
   const submitWithRoundsSnapshot = (values: DemandFormState) => {
+    const finalValues: DemandFormState = {
+      ...values,
+      rate_conversion_formula: demandFormula || clientFormula || undefined,
+    };
     if (isCreateMode && !values.interview_rounds && interviewRounds.length > 0) {
-      onSubmit({ ...values, interview_rounds: toRoundsFieldValue(interviewRounds) });
+      onSubmit({ ...finalValues, interview_rounds: toRoundsFieldValue(interviewRounds) });
       return;
     }
-    onSubmit(values);
+    onSubmit(finalValues);
   };
 
   const amProfilesQuery = useAmProfilesQuery();
@@ -342,7 +370,7 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
   return (
     <form onSubmit={handleSubmit(submitWithRoundsSnapshot)} className="flex flex-col gap-3 rounded-[10px] bg-[#f8fafc] p-3.5">
       <SectionCard label="Client & Ownership">
-        <div className={showAmSelector ? 'grid grid-cols-4 gap-2.5' : 'grid grid-cols-3 gap-2.5'}>
+        <div className={cn('grid gap-2.5', !isCreateMode ? (showAmSelector ? 'grid-cols-4' : 'grid-cols-3') : (showAmSelector ? 'grid-cols-3' : 'grid-cols-2'))}>
           <FormField
             label="Internal Request ID"
             placeholder={idFieldsReadOnlyPlaceholders ? 'Auto-generated if blank' : undefined}
@@ -407,28 +435,30 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
               />
             )}
           />
-          <Controller
-            name="recruiter_ids"
-            control={control}
-            render={({ field }) => (
-              <UserSelect
-                mode="multiple"
-                label="Recruiter (TA)"
-                placeholder="Select recruiters"
-                options={resolvedRecruiterOptions}
-                value={field.value}
-                onChange={field.onChange}
-                isLoading={recruiterProfilesQuery.isLoading}
-                error={errors.recruiter_ids?.message}
-              />
-            )}
-          />
+          {!isCreateMode && (
+            <Controller
+              name="recruiter_ids"
+              control={control}
+              render={({ field }) => (
+                <UserSelect
+                  mode="multiple"
+                  label="Recruiter (TA)"
+                  placeholder="Select recruiters"
+                  options={resolvedRecruiterOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  isLoading={recruiterProfilesQuery.isLoading}
+                  error={errors.recruiter_ids?.message}
+                />
+              )}
+            />
+          )}
         </div>
         {/* Company master: a searchable single-select replaces the old Client Name / Company Name /
             Company Email text inputs. Those values now live on the Company record and are mirrored
             onto the demand by the API. "+ Add Company" (create mode only) creates a real master
             row without leaving this form. */}
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
           {/* isCreateMode gates the quick-create button; the Company list itself is ALWAYS ACTIVE-only
               (create AND edit). In edit mode CompanySelect separately resolves the Demand's
               current company, so an INACTIVE one is still shown — tagged "Inactive" and
@@ -454,6 +484,21 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
               </div>
             )}
           />
+          <FormField
+            label="Customer ID (Client Demand ID)"
+            placeholder="Customer's requirement ID"
+            register={register('client_demand_id')}
+            error={errors.client_demand_id?.message}
+          />
+          <FormField
+            label="Intermediary Partner"
+            placeholder="e.g. Partner agency"
+            register={register('intermediary_partner')}
+            error={errors.intermediary_partner?.message}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
           <Controller
             name="end_client_id"
             control={control}
@@ -484,6 +529,33 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
               />
             )}
           />
+          <Controller
+            name="engagement_type"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                label="Engagement"
+                options={[{ value: 'Proactive', label: 'Proactive' }, { value: 'Active', label: 'Active' }]}
+                value={field.value}
+                onChange={field.onChange}
+                allowClear
+                clearLabel="None"
+                placeholder="Proactive or Active"
+              />
+            )}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 pt-0.5">
+          <input
+            type="checkbox"
+            id="is_niche"
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            {...register('is_niche')}
+          />
+          <label htmlFor="is_niche" className="cursor-pointer text-[0.82rem] font-medium text-[#334155]">
+            Niche Requirement <span className="font-normal text-[#64748b]">(Triggers SPOC approval followed by Account Manager approval for submissions)</span>
+          </label>
         </div>
 
         <Controller
@@ -491,6 +563,25 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
           control={control}
           render={({ field }) => (
             <ClientSpocField companyId={selectedCompanyId ?? ''} value={field.value ?? []} onChange={field.onChange} />
+          )}
+        />
+
+        <Controller
+          name="required_skills"
+          control={control}
+          render={({ field }) => (
+            <SkillsSelector
+              label="Skill Group"
+              categoryLabel="Skill Group"
+              layout="side-by-side"
+              value={field.value}
+              onChange={field.onChange}
+              categoryId={skillsCategoryId}
+              categoryPlaceholder="Select a skill group (optional)"
+              onCategoryChange={(id) => setValue('skills_category_id', id, { shouldDirty: true })}
+              suggestedCategoryIds={suggestedSkillGroupIds}
+              suggestedReason={demandType ? `“${demandType}”` : undefined}
+            />
           )}
         />
       </SectionCard>
@@ -511,44 +602,8 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
           }}
         />
         <FormTextArea label="Comments" rows={2} placeholder="Anything else the team should know about this demand" register={register('comments')} error={errors.comments?.message} />
-        <FormTextArea label="Other Details" rows={2} placeholder={'Anything not covered by the fields above, one per line as "Label: value"'} register={register('other_details')} error={errors.other_details?.message} />
-        <div>
-          <Controller
-            name="required_skills"
-            control={control}
-            render={({ field }) => (
-              <SkillsSelector
-                label="Required Skills"
-                value={field.value}
-                onChange={field.onChange}
-                categoryId={skillsCategoryId}
-                categoryPlaceholder="Select a skill group (optional)"
-                onCategoryChange={(id) => setValue('skills_category_id', id, { shouldDirty: true })}
-                suggestedCategoryIds={suggestedSkillGroupIds}
-                suggestedReason={demandType ? `“${demandType}”` : undefined}
-              />
-            )}
-          />
-        </div>
         <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-          <FormField label="Client Demand Id" register={register('client_demand_id')} error={errors.client_demand_id?.message} />
-          <FormField label="Intermediary Partner" register={register('intermediary_partner')} error={errors.intermediary_partner?.message} />
           <FormField label="Shift Timings" placeholder="e.g. 2 PM – 11 PM IST" register={register('shift_timings')} error={errors.shift_timings?.message} />
-          <Controller
-            name="engagement_type"
-            control={control}
-            render={({ field }) => (
-              <FormSelect
-                label="Engagement"
-                options={[{ value: 'Proactive', label: 'Proactive' }, { value: 'Active', label: 'Active' }]}
-                value={field.value}
-                onChange={field.onChange}
-                allowClear
-                clearLabel="None"
-                placeholder="Proactive or Active"
-              />
-            )}
-          />
           <Controller
             name="role_category"
             control={control}
@@ -634,6 +689,22 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
           )}
         />
       </SectionCard>
+
+      {isContractDemand && (
+        <ContractRateConverterCard
+          clientName={selectedCompanyLabel}
+          formula={demandFormula || clientFormula || DEFAULT_RATE_FORMULA}
+          onFormulaChange={(newFormula) => {
+            setDemandFormula(newFormula);
+            setValue('rate_conversion_formula', newFormula, { shouldDirty: true });
+          }}
+          onApplyCompensation={(min, max) => {
+            setValue('compensation_min', min, { shouldDirty: true });
+            setValue('compensation_max', max, { shouldDirty: true });
+            toast.success('Compensation updated', `Calculated range ₹ ${min} - ₹ ${max} applied.`);
+          }}
+        />
+      )}
 
       <SectionCard label="Compensation, Positions & Tracking">
         <div className="grid grid-cols-4 gap-2.5">
@@ -761,6 +832,16 @@ export function DemandForm({ defaultValues, onSubmit, onCancel, submitLabel, sec
           />
           <input type="hidden" {...register('interview_rounds')} readOnly />
         </div>
+      </SectionCard>
+
+      <SectionCard label="Other Details">
+        <FormTextArea
+          label="Other Details"
+          rows={2}
+          placeholder={'Anything not covered by the fields above, one per line as "Label: value"'}
+          register={register('other_details')}
+          error={errors.other_details?.message}
+        />
       </SectionCard>
 
       <div className="flex justify-end gap-2.5">

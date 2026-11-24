@@ -617,6 +617,14 @@ Migration `20261112120000_client_feedback_round`.
 - **Log stamps**: `src/lib/logStamp.ts`; interview PATCH `log_comment` appends a stamped line to
   `interviews.feedback` server-side.
 
+### App review enhancements (Nov 2026) — Phases 1 to 6
+
+- **Taxonomy & Working Days**: Skill Group -> Skill Category -> Skills 3-tier hierarchy (`src/components/demandFulfillment/SkillsLibrarySection.tsx`). Working days master data model and endpoints (`/api/admin/settings/working-days`, `WorkingDaysSection.tsx`).
+- **Interview Management**: Drawer-based round workflow (`CandidateInterviewDrawer.tsx`, `/api/demands/[requestId]/candidates/[dcId]/interview-manager`) with sequential round unlocking, versioned rescheduling, and rejection cascade.
+- **Rate-to-CTC Converter**: Mathematical formula evaluator (`src/lib/rateConverter/formulaEngine.ts`), client formula builder (`FormulaCreator.tsx`), and demand converter panel (`ContractRateConverterCard.tsx`).
+- **Niche Dual Approval & Quotas**: Two-stage approval workflow for niche demands (`nicheDualApproval.ts`). Dynamic active/backup submission slots with auto-promotion upon candidate rejection (`resumeCap.ts`, `sourcingSlots.ts`).
+- **Similar Demands & Active Reports**: Jaccard/overlap skill matching algorithm (`similarDemands.ts`) suggesting matching active demands for candidate profiles. Reports include active-demand scope toggles and date-range drilldowns with daily interview counts (`TodaysInterviewsReportView.tsx`).
+
 ## 10. Key entry points
 
 | I need to… | Open this first |

@@ -62,6 +62,8 @@ function toDemandPayload(form: DemandFormState) {
     compensation_max: form.compensation_max === '' ? null : form.compensation_max ?? null,
     locations: form.locations ?? [],
     end_client_id: form.end_client_id || null,
+    is_niche: form.is_niche ?? false,
+    rate_conversion_formula: form.rate_conversion_formula ?? null,
     demand_type: form.demand_type || null,
     engagement_type: form.engagement_type || null,
     client_demand_id: form.client_demand_id || null,

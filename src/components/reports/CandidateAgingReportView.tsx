@@ -16,23 +16,35 @@ const PHASES = Object.keys(PHASE_LABELS) as (keyof typeof PHASE_LABELS)[];
  */
 export function CandidateAgingReportView() {
   const [phase, setPhase] = useState<string | null>(null);
-  const query = useCandidateAgingReport(phase);
+  const [activeOnly, setActiveOnly] = useState(true);
+  const query = useCandidateAgingReport(phase, activeOnly);
   const rows = query.data?.rows ?? [];
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Phase">
-        {[null, ...PHASES].map((p) => (
-          <button
-            key={p ?? 'all'}
-            type="button"
-            aria-pressed={phase === p}
-            onClick={() => setPhase(p)}
-            className={cn('rounded-full border px-3 py-1 text-[0.78rem]', phase === p ? 'border-[#2563eb] bg-[#eff6ff] font-semibold text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc]')}
-          >
-            {p ? PHASE_LABELS[p] : 'All phases'}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Phase">
+          {[null, ...PHASES].map((p) => (
+            <button
+              key={p ?? 'all'}
+              type="button"
+              aria-pressed={phase === p}
+              onClick={() => setPhase(p)}
+              className={cn('rounded-full border px-3 py-1 text-[0.78rem]', phase === p ? 'border-[#2563eb] bg-[#eff6ff] font-semibold text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc]')}
+            >
+              {p ? PHASE_LABELS[p] : 'All phases'}
+            </button>
+          ))}
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-[0.8rem] text-[#475569]">
+          <input
+            type="checkbox"
+            checked={activeOnly}
+            onChange={(e) => setActiveOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-[#cbd5e1] text-[#2563eb]"
+          />
+          Active demands only
+        </label>
       </div>
 
       {query.isLoading ? (

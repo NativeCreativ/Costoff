@@ -23,7 +23,7 @@ export function CallLogPanel({ requestId }: { requestId: string }) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [completing, setCompleting] = useState<{ callId: string; candidateId: string; canEditCandidate: boolean } | null>(null);
+  const [completing, setCompleting] = useState<{ callId: string; candidateId: string; canEditCandidate: boolean; skillGroupId?: string | null } | null>(null);
   const calls = query.data?.calls ?? [];
   const selected = calls.find((c) => c.id === selectedId) ?? null;
   const shown = showAll ? calls : calls.slice(0, 15);
@@ -33,7 +33,7 @@ export function CallLogPanel({ requestId }: { requestId: string }) {
     setSelectedId(null);
     // The edit permission on the profile itself is checked by the server; the form shows
     // "add as is" to someone who may not edit it.
-    setCompleting({ callId: call.id, candidateId: call.candidate_id, canEditCandidate: true });
+    setCompleting({ callId: call.id, candidateId: call.candidate_id, canEditCandidate: true, skillGroupId: call.skill_group_id });
   };
 
   return (
@@ -134,6 +134,7 @@ export function CallLogPanel({ requestId }: { requestId: string }) {
           requestId={requestId}
           callId={completing.callId}
           candidateId={completing.candidateId}
+          skillGroupId={completing.skillGroupId}
           canEditCandidate={completing.canEditCandidate}
           onClose={() => setCompleting(null)}
         />
