@@ -1,51 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  forgotPasswordSchema,
-  type ForgotPasswordFormValues,
-} from "@/components/auth/auth.schema";
-import { useForgotPasswordMutation } from "@/queries/auth/useForgotPasswordMutation";
 
+/**
+ * Forgot password — there is no self-service reset (security fix, 25 Nov 2026): the app cannot
+ * email a reset link, and resetting by email address alone let anyone take over any account.
+ * The Delivery Head resets a forgotten password from the Users page.
+ */
 export default function ForgotPasswordPage() {
-  const router = useRouter();
-  const forgotPasswordMutation = useForgotPasswordMutation();
-  const [formError, setFormError] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-  });
-
-  const onSubmit = async (values: ForgotPasswordFormValues) => {
-    setFormError(null);
-    try {
-      await forgotPasswordMutation.mutateAsync(values.email);
-      router.push(`/reset-password?email=${encodeURIComponent(values.email)}`);
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error || "We couldn't verify that email. Please try again.";
-      setFormError(message);
-    }
-  };
-
-  const busy = isSubmitting || forgotPasswordMutation.isPending;
-
   return (
     <AuthShell
       title="Forgot password?"
-      subtitle="Enter your email address and we'll verify your account"
+      subtitle="Your Delivery Head can reset it for you"
       footer={
         <>
           Remembered your password?{" "}
@@ -58,43 +25,13 @@ export default function ForgotPasswordPage() {
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
-        {formError && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[0.82rem] text-red-700">
-            {formError}
-          </div>
-        )}
-        <div>
-          <label className="mb-1 block text-[0.8rem] font-semibold text-[#0f172a]">
-            Email Address
-          </label>
-          <Input
-            type="email"
-            placeholder="e.g. admin@costaff.com"
-            autoFocus
-            disabled={busy}
-            className="h-auto w-full rounded-md border-[#e2e8f0] px-3 py-2 text-[0.85rem] shadow-none"
-            {...register("email")}
-          />
-          {errors.email?.message && (
-            <span className="mt-1 block text-[0.72rem] text-[#dc2626]">{errors.email.message}</span>
-          )}
-        </div>
-        <Button
-          type="submit"
-          disabled={busy}
-          className="h-auto w-full rounded-md py-2.5 text-[0.9rem] font-semibold"
-        >
-          {busy ? (
-            <span className="flex items-center justify-center gap-2">
-              <i className="fa-solid fa-spinner fa-spin"></i>
-              Verifying…
-            </span>
-          ) : (
-            "Verify Email"
-          )}
-        </Button>
-      </form>
+      <div className="flex flex-col gap-2 text-[0.85rem] text-[#334155]">
+        <p>For security, passwords can&apos;t be reset from this page.</p>
+        <p>
+          Ask your <strong>Delivery Head</strong> (the app admin) to set a new password for you from the{" "}
+          <strong>Users</strong> page. Once you&apos;re signed in, you can change it to one of your own there.
+        </p>
+      </div>
     </AuthShell>
   );
 }

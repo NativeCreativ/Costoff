@@ -1,27 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
-import { forgotPasswordSchema } from '@/components/auth/auth.schema';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = forgotPasswordSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const profile = await prisma.profiles.findUnique({
-      where: { email: parsed.data.email },
-      select: { id: true, is_active: true },
-    });
-
-    if (!profile || profile.is_active === false) {
-      return NextResponse.json({ error: 'No account found with this email address' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error in POST /api/auth/forgot-password:', error);
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
-  }
+/**
+ * POST /api/auth/forgot-password — switched off with the reset route (security fix, 25 Nov 2026).
+ * It only told the caller whether an email had an active account, which helped someone guess
+ * accounts to take over. Passwords are reset by the Delivery Head from the Users page.
+ */
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Password reset by email is not available. Ask your Delivery Head to reset your password from the Users page.' },
+    { status: 403 }
+  );
 }

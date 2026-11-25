@@ -290,6 +290,10 @@ to who may edit the client.
 
 ## 2026-11 update — client feedback round
 
+- **Password reset (security fix, 25 Nov 2026):** there is no self-service reset. `/api/auth/forgot-password` and
+  `/api/auth/reset-password` answer 403 (they used to set a new password for any posted email, with no
+  token). A forgotten password is reset by Super Admin from the Users page (`PUT /api/users/[id]/password`).
+
 - **Skill Groups** (create / edit / delete, and putting a category in a group): `canManageSkillsLibrary`
   (Super Admin), like the rest of the skills library. `GET /api/skill-groups`: any signed-in user.
 - **Smart Reports (AI)**: any signed-in user; the data it answers from uses
