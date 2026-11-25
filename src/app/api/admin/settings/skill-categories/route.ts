@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       data: {
         name: parsed.data.name,
         description: parsed.data.description?.trim() || null,
+        group_id: parsed.data.group_id ?? null,
         sort_order: (max._max.sort_order ?? 0) + 1,
       },
       include: { skills: true },

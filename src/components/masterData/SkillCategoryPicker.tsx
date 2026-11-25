@@ -53,7 +53,7 @@ export function SkillCategoryPicker({ group, groups }: SkillCategoryPickerProps)
 
   return (
     <div className="mt-3 rounded-md border border-[#e2e8f0] bg-white p-2.5">
-      <div className="mb-1.5 text-[0.78rem] font-semibold text-[#475569]">Add skills from a Skill Category</div>
+      <div className="mb-1.5 text-[0.78rem] font-semibold text-[#475569]">Add skills by classification</div>
       <div className="flex flex-wrap gap-1.5">
         {activeCategories.map((c) => (
           <button

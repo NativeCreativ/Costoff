@@ -172,3 +172,34 @@ export async function getCandidateAgingReport(phase: string | null, activeOnly?:
   const { data } = await api.get('/reports/candidate-aging', { params });
   return { rows: data.rows ?? [], truncated: !!data.truncated };
 }
+
+/* ─────────────── Smart Reports (AI) ─────────────── */
+
+/**
+ * Asks Smart Reports a question. The answer streams back as text, so this uses fetch (axios in
+ * the browser cannot read a streaming body); `onText` gets each new piece as it arrives.
+ */
+export async function askSmartReport(question: string, onText: (chunk: string) => void, signal?: AbortSignal): Promise<void> {
+  const res = await fetch('/api/reports/smart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    let message = 'Smart Reports could not answer right now.';
+    try {
+      message = (await res.json()).error || message;
+    } catch {
+      // not JSON
+    }
+    throw new Error(message);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onText(decoder.decode(value, { stream: true }));
+  }
+}

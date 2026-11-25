@@ -74,6 +74,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'report_ready_to_join', href: '/reports/ready-to-join', label: 'Ready to Join', icon: 'fa-user-check' },
       { id: 'report_candidate_aging', href: '/reports/candidate-aging', label: 'Candidate Aging', icon: 'fa-hourglass-half' },
       { id: 'report_contribution', href: '/reports/contribution', label: 'Team Contribution', icon: 'fa-people-group' },
+      { id: 'report_smart', href: '/reports/smart', label: 'Smart Reports (AI)', icon: 'fa-wand-magic-sparkles' },
     ],
   },
   {

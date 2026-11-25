@@ -222,13 +222,9 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
         )}
       </section>
 
-      {/* "All Details" was removed (review, Nov 2026): every field is on the Details tab. */}
-      <DemandActionsBar
-        demand={demand}
-        onboardings={onboardings}
-        canManage={canManageStatus}
-        onCloneRequest={canClone ? openCloneModal : undefined}
-      />
+      {/* "All Details" was removed (review, Nov 2026): every field is on the Details tab.
+          The status buttons row (Move to…, Hold, Cancel, Close, Clone) was removed from the top
+          of the page too (review of 18 Nov 2026, item 3) and now lives on the Closure tab. */}
 
       {/* Sticky under the 68px top header so the section stays reachable while scrolling a
           long pipeline / calendar / settings tab. */}
@@ -248,6 +244,17 @@ export function DemandDetailView({ requestId, activeTab, currentUser, onBack }: 
       </div>
 
       <div className="rounded-xl border border-[#e2e8f0] bg-white p-4">
+        {activeTab === 'closure' && (
+          <div className="mb-4">
+            <div className="mb-1.5 text-[0.75rem] font-extrabold uppercase tracking-[0.05em] text-[#475569]">Demand status</div>
+            <DemandActionsBar
+              demand={demand}
+              onboardings={onboardings}
+              canManage={canManageStatus}
+              onCloneRequest={canClone ? openCloneModal : undefined}
+            />
+          </div>
+        )}
         <DemandLifecyclePanels
           requestId={requestId}
           activeTab={activeTab}

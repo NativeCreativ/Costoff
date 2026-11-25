@@ -625,6 +625,17 @@ Migration `20261112120000_client_feedback_round`.
 - **Niche Dual Approval & Quotas**: Two-stage approval workflow for niche demands (`nicheDualApproval.ts`). Dynamic active/backup submission slots with auto-promotion upon candidate rejection (`resumeCap.ts`, `sourcingSlots.ts`).
 - **Similar Demands & Active Reports**: Jaccard/overlap skill matching algorithm (`similarDemands.ts`) suggesting matching active demands for candidate profiles. Reports include active-demand scope toggles and date-range drilldowns with daily interview counts (`TodaysInterviewsReportView.tsx`).
 
+### Skill groups and Smart Reports (Nov 2026, review of 18 Nov items 1, 3, 12)
+
+- `skill_groups` (migration `20261125100000_review_phase_6`) ← `skill_categories.group_id` ← `skills`.
+  Demands / candidates still save `skills_category_id`; the group is a filter only. Picker read:
+  `GET /api/skill-groups`; admin: `/api/admin/settings/skill-groups` (+ `[id]`); a category's group is
+  set through the existing category PUT (`group_id`).
+- Demand status buttons (`DemandActionsBar`) render on the Closure tab only.
+- Smart Reports: `POST /api/reports/smart` streams text. `buildSmartReportSnapshot` (dashboard scope,
+  no candidate PII) → `@anthropic-ai/sdk` `claude-opus-5-5`, effort low, server-side refusal fallback,
+  cached system prompt. Env: `ANTHROPIC_API_KEY` (server only; without it the route answers 503).
+
 ## 10. Key entry points
 
 | I need to… | Open this first |

@@ -4,7 +4,17 @@ import { SKILL_MAX_LENGTH } from '@/lib/skills';
 export const skillCategorySchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(SKILL_MAX_LENGTH, `Keep it to ${SKILL_MAX_LENGTH} characters or fewer`),
   description: z.string().trim().max(500, 'Keep the description to 500 characters or fewer').optional().or(z.literal('')),
+  /** Review of 18 Nov 2026, item 1: the Skill Group this Skill Category belongs to. null = none. */
+  group_id: z.string().uuid().nullable().optional(),
 });
+
+/** Skill Group (top of Skill Group -> Skill Category -> Skills). */
+export const skillGroupSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Keep it to 100 characters or fewer'),
+  description: z.string().trim().max(500, 'Keep the description to 500 characters or fewer').optional().or(z.literal('')),
+  is_active: z.boolean().optional(),
+});
+export type SkillGroupValues = z.infer<typeof skillGroupSchema>;
 export type SkillCategoryValues = z.infer<typeof skillCategorySchema>;
 
 export const SKILL_TYPE_VALUES = ['mandatory', 'optional'] as const;

@@ -25,6 +25,7 @@ import {
 } from '@/queries/settings/useSkillsLibraryMutations';
 import type { SkillCategory } from '@/components/types';
 import { SkillCategoryPicker } from '@/components/masterData/SkillCategoryPicker';
+import { useAdminSkillGroupsQuery, useSkillGroupMutations } from '@/queries/settings/useSkillGroups';
 
 function errorMessage(err: unknown, fallback: string): string {
   return isAxiosError(err) ? err.response?.data?.error || fallback : fallback;
@@ -51,6 +52,13 @@ export function SkillsLibrarySection() {
   const toggleSkill = useToggleSkillMutation();
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  // Review of 18 Nov 2026, item 1: Skill Group -> Skill Category -> Skills. This list is the
+  // Skill Categories; each one can be put into a Skill Group, and the list can be filtered by group.
+  const skillGroupsQuery = useAdminSkillGroupsQuery();
+  const { setCategoryGroup } = useSkillGroupMutations();
+  const [groupFilter, setGroupFilter] = useState('');
+  const skillGroups = skillGroupsQuery.data ?? [];
+  const groupName = (id?: string | null) => skillGroups.find((g) => g.id === id)?.name ?? null;
   const [error, setError] = useState<string | null>(null);
 
   const [addingCategory, setAddingCategory] = useState(false);
@@ -210,12 +218,21 @@ export function SkillsLibrarySection() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         {/* Categories (left) */}
         <div>
-          <div className="mb-2 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#94a3b8]">Skill groups</div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#94a3b8]">Skill categories</span>
+            {skillGroups.length > 0 && (
+              <select aria-label="Filter by skill group" className="button-select h-7 text-[0.75rem]" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+                <option value="">All skill groups</option>
+                {skillGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                <option value="none">No skill group</option>
+              </select>
+            )}
+          </div>
           {categories.length === 0 && !addingCategory && (
-            <div className="mb-2 rounded-md border border-dashed border-[#e2e8f0] p-4 text-center text-[0.8rem] text-[#94a3b8]">No skill groups yet.</div>
+            <div className="mb-2 rounded-md border border-dashed border-[#e2e8f0] p-4 text-center text-[0.8rem] text-[#94a3b8]">No skill categories yet.</div>
           )}
           <div className="flex flex-col gap-1.5">
-            {categories.map((c) => {
+            {categories.filter((c) => !groupFilter || (groupFilter === 'none' ? !c.group_id : c.group_id === groupFilter)).map((c) => {
               const delTip = categoryDeleteTooltip(c);
               return (
                 <div
@@ -257,6 +274,7 @@ export function SkillsLibrarySection() {
                     <>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[0.83rem] text-[#334155]">{c.name}</span>
+                        <span className="block truncate text-[0.72rem] text-[#64748b]">{groupName(c.group_id) ? `Group: ${groupName(c.group_id)}` : 'No skill group'}</span>
                         {c.description && <span className="block truncate text-[0.72rem] text-[#94a3b8]">{c.description}</span>}
                       </span>
                       <span className="shrink-0 text-[0.7rem] text-[#94a3b8]">{c.skills.length}</span>
@@ -288,7 +306,7 @@ export function SkillsLibrarySection() {
                     else if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName(''); setNewCategoryDescription(''); setError(null); }
                   }}
                   maxLength={40}
-                  placeholder="Skill group name"
+                  placeholder="Skill category name"
                   className="h-auto flex-1 rounded-md border-[#e2e8f0] bg-white px-2 py-1 text-[0.82rem] shadow-none"
                 />
                 <button onClick={saveNewCategory} disabled={createCategory.isPending} className="shrink-0 text-[#16a34a] hover:text-[#15803d]"><Check className="h-4 w-4" /></button>
@@ -303,7 +321,7 @@ export function SkillsLibrarySection() {
             </div>
           ) : (
             <Button size="sm" variant="outline" onClick={() => { setAddingCategory(true); setError(null); }} className="mt-2 gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Add skill group
+              <Plus className="h-3.5 w-3.5" /> Add skill category
             </Button>
           )}
         </div>
@@ -312,9 +330,24 @@ export function SkillsLibrarySection() {
         <div>
           <div className="mb-2 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#94a3b8]">
             Skills{selectedCategory ? ` — ${selectedCategory.name}` : ''}
+            {selectedCategory && skillGroups.length > 0 && (
+              <label className="ml-2 inline-flex items-center gap-1.5 normal-case tracking-normal">
+                <span className="text-[0.75rem] font-semibold text-[#475569]">Skill Group</span>
+                <select
+                  aria-label="Skill group of this category"
+                  className="button-select h-7 text-[0.75rem]"
+                  value={selectedCategory.group_id ?? ''}
+                  disabled={setCategoryGroup.isPending}
+                  onChange={(e) => setCategoryGroup.mutate({ category: selectedCategory, groupId: e.target.value || null })}
+                >
+                  <option value="">No skill group</option>
+                  {skillGroups.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_active ? '' : ' (inactive)'}</option>)}
+                </select>
+              </label>
+            )}
           </div>
           {!selectedCategory ? (
-            <div className="rounded-md border border-dashed border-[#e2e8f0] p-4 text-center text-[0.8rem] text-[#94a3b8]">Select or add a skill group to manage its skills.</div>
+            <div className="rounded-md border border-dashed border-[#e2e8f0] p-4 text-center text-[0.8rem] text-[#94a3b8]">Select or add a skill category to manage its skills.</div>
           ) : (
             <>
               {skills.length === 0 && !addingSkill && (
@@ -354,9 +387,9 @@ export function SkillsLibrarySection() {
                             value={editSkillClassificationId}
                             onChange={(val) => setEditSkillClassificationId(val)}
                             options={classificationOptions}
-                            placeholder="Skill category"
+                            placeholder="Classification"
                             allowClear
-                            clearLabel="No category"
+                            clearLabel="No classification"
                             className="min-w-[150px] flex-1 text-[0.78rem]"
                           />
                           <FormSelect
@@ -438,9 +471,9 @@ export function SkillsLibrarySection() {
                       value={newSkillClassificationId}
                       onChange={(val) => setNewSkillClassificationId(val)}
                       options={classificationOptions}
-                      placeholder="Skill category (Technical, Domain...)"
+                      placeholder="Classification (Technical, Domain...)"
                       allowClear
-                      clearLabel="No category"
+                      clearLabel="No classification"
                       className="min-w-[150px] flex-1 text-[0.78rem]"
                     />
                     <FormSelect

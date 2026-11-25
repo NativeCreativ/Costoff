@@ -163,10 +163,23 @@ export interface Skill {
   is_active: boolean;
 }
 
+/** Top of Skill Group -> Skill Category -> Skills (review of 18 Nov 2026). */
+export interface SkillGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  sort_order: number;
+  is_active: boolean;
+  /** Settings list only. */
+  category_count?: number;
+}
+
 export interface SkillCategory {
   id: string;
   name: string;
   description?: string | null;
+  /** The Skill Group this category belongs to (null = none). */
+  group_id?: string | null;
   sort_order: number;
   is_active: boolean;
   skills: Skill[];

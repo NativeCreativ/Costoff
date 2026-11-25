@@ -290,6 +290,11 @@ to who may edit the client.
 
 ## 2026-11 update — client feedback round
 
+- **Skill Groups** (create / edit / delete, and putting a category in a group): `canManageSkillsLibrary`
+  (Super Admin), like the rest of the skills library. `GET /api/skill-groups`: any signed-in user.
+- **Smart Reports (AI)**: any signed-in user; the data it answers from uses
+  `buildDashboardDemandCondition`, and team activity is included for Super Admin only.
+
 - **Review batches 2–5** (Nov 2026):
   - Full PAN (`GET /api/candidates/[id]/pan`): only someone who may edit the candidate
     (`canEditCandidate`). Everyone else sees the last 4 characters.

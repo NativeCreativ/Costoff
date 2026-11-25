@@ -65,6 +65,8 @@ export const queryKeys = {
   reportTodaysInterviews: (params: unknown) => ['reports', 'todays-interviews', params] as const,
   reportReadyToJoin: (skillGroup: string | null, location: string | null) => ['reports', 'ready-to-join', skillGroup, location] as const,
   reportContribution: (from: string, to: string, userId: string | null, activeOnly?: boolean) => ['reports', 'contribution', from, to, userId, activeOnly] as const,
+  skillGroups: ['skill-groups'] as const,
+  skillGroupsAdmin: ['skill-groups', 'admin'] as const,
   reportCandidateAging: (phase: string | null, activeOnly?: boolean) => ['reports', 'candidate-aging', phase, activeOnly] as const,
   todos: (view: string, page?: number) => ['todos', view, page] as const,
   onboardingSteps: (onboardingId: string) => ['onboardings', onboardingId, 'steps'] as const,

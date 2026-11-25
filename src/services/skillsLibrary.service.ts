@@ -70,3 +70,32 @@ export async function toggleSkillCategory(id: string, isActive: boolean): Promis
 export async function toggleSkill(id: string, isActive: boolean): Promise<void> {
   await api.put(`/admin/settings/skills/${id}/toggle`, { is_active: isActive });
 }
+
+/* ─────────────── Skill Groups (Skill Group -> Skill Category -> Skills) ─────────────── */
+
+export async function getSkillGroups(): Promise<import('@/components/types').SkillGroup[]> {
+  const { data } = await api.get('/skill-groups');
+  return data.groups || [];
+}
+
+export async function getAdminSkillGroups(): Promise<import('@/components/types').SkillGroup[]> {
+  const { data } = await api.get('/admin/settings/skill-groups');
+  return data.groups || [];
+}
+
+export async function createSkillGroup(input: { name: string; description?: string }): Promise<void> {
+  await api.post('/admin/settings/skill-groups', input);
+}
+
+export async function updateSkillGroup(id: string, input: { name: string; description?: string; is_active?: boolean }): Promise<void> {
+  await api.put(`/admin/settings/skill-groups/${id}`, input);
+}
+
+export async function deleteSkillGroup(id: string): Promise<void> {
+  await api.delete(`/admin/settings/skill-groups/${id}`);
+}
+
+/** Puts a Skill Category under a Skill Group (null = no group). Keeps its name/description. */
+export async function setSkillCategoryGroup(category: { id: string; name: string; description?: string | null }, groupId: string | null): Promise<void> {
+  await api.put(`/admin/settings/skill-categories/${category.id}`, { name: category.name, description: category.description ?? '', group_id: groupId });
+}

@@ -36,6 +36,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         ...(parsed.data.description !== undefined
           ? { description: parsed.data.description?.trim() || null }
           : {}),
+        ...(parsed.data.group_id !== undefined ? { group_id: parsed.data.group_id } : {}),
       },
       include: { skills: { orderBy: { sort_order: 'asc' } } },
     });

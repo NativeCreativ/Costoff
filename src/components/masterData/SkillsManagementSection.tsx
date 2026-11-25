@@ -51,7 +51,7 @@ export function SkillsManagementSection() {
   );
   const classificationName = (id?: string | null) =>
     classifications.data?.find((row) => row.id === id)?.name ?? '—';
-  // Review batch 5: skills listed under their Skill Category (Technical, Domain, …).
+  // Review batch 5: skills listed under their classification (Technical, Domain, …).
   const groupedByCategory = useMemo(() => {
     const order = (classifications.data ?? []).map((c) => c.id);
     const groups = new Map<string, typeof skills>();
@@ -61,14 +61,14 @@ export function SkillsManagementSection() {
     }
     return [...order, '']
       .filter((key) => groups.has(key))
-      .map((key) => ({ heading: key ? classificationName(key) : 'No skill category', rows: groups.get(key)! }));
+      .map((key) => ({ heading: key ? classificationName(key) : 'No classification', rows: groups.get(key)! }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skills, classifications.data]);
 
   const save = () => {
     if (!draft) return;
     if (!draft.name.trim() || !draft.categoryId) {
-      setError('Name and skill group are required');
+      setError('Name and skill category are required');
       return;
     }
     setError(null);
@@ -100,9 +100,9 @@ export function SkillsManagementSection() {
       <div>
         <h2 className="mb-2 text-[0.95rem] font-semibold text-[#0f172a]">Skills</h2>
         <p className="mb-3 text-[0.78rem] text-[#64748b]">
-          Type is Mandatory or Optional. Skill Category (Technical, Behavioural, Domain) is a classification, separate from the skill group template.
+          Type is Mandatory or Optional. Classification (Technical, Behavioural, Domain…) is a tag on each skill. The Skill Group → Skill Category → Skills structure is managed in Skill Group Management.
         </p>
-        {skills.length === 0 && <p className="mb-3 text-[0.8rem] text-[#94a3b8]">No skills yet. Add a skill group first, then a skill.</p>}
+        {skills.length === 0 && <p className="mb-3 text-[0.8rem] text-[#94a3b8]">No skills yet. Add a skill category first, then a skill.</p>}
         <div className="flex flex-col gap-1.5">
           {groupedByCategory.map(({ heading, rows }) => [
             <div key={'h-' + heading} className="mt-2 text-[0.72rem] font-extrabold uppercase tracking-[0.05em] text-[#2563eb] first:mt-0">{heading} · {rows.length}</div>,
@@ -133,11 +133,11 @@ export function SkillsManagementSection() {
           <div className="mt-3 grid grid-cols-1 gap-2 rounded-md border border-[#bfdbfe] bg-[#eff6ff] p-3 sm:grid-cols-2">
             <Input value={draft.name} placeholder="Skill name" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             <FormSelect
-              label="Skill group"
+              label="Skill category"
               value={draft.categoryId}
               onChange={(value) => setDraft({ ...draft, categoryId: value })}
               options={categories.map((category) => ({ value: category.id, label: category.name }))}
-              placeholder="Select a skill group"
+              placeholder="Select a skill category"
             />
             <FormSelect
               label="Type"
@@ -146,7 +146,7 @@ export function SkillsManagementSection() {
               options={TYPE_OPTIONS}
             />
             <FormSelect
-              label="Skill category"
+              label="Classification"
               value={draft.classificationId}
               onChange={(value) => setDraft({ ...draft, classificationId: value })}
               options={(classifications.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
@@ -167,9 +167,9 @@ export function SkillsManagementSection() {
         )}
       </div>
       <div>
-        <h2 className="mb-1 text-[0.95rem] font-semibold text-[#0f172a]">Skill categories</h2>
-        <p className="mb-3 text-[0.78rem] text-[#64748b]">Classifications such as Technical, Behavioural and Domain. These are not skill-group templates.</p>
-        <NamedMasterSection kind="skill-classifications" noun="skill category" />
+        <h2 className="mb-1 text-[0.95rem] font-semibold text-[#0f172a]">Classifications</h2>
+        <p className="mb-3 text-[0.78rem] text-[#64748b]">Tags such as Technical, Behavioural and Domain. Separate from the Skill Group → Skill Category structure.</p>
+        <NamedMasterSection kind="skill-classifications" noun="classification" />
       </div>
     </div>
   );

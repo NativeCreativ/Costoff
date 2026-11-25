@@ -7,6 +7,7 @@ import { FormSelect } from './FormSelect';
 import { Badge } from './badge';
 import { useToast } from './Toast';
 import { useSkillsLibraryQuery } from '@/queries/settings/useSkillsLibraryQueries';
+import { useSkillGroupsQuery } from '@/queries/settings/useSkillGroups';
 import { SKILL_MAX_LENGTH } from '@/lib/skills';
 
 interface SkillsSelectorProps {
@@ -77,13 +78,37 @@ export function SkillsSelector({ label, categoryLabel, required, value, onChange
   // The category is controlled only where the parent persists it (Demand); Candidate keeps it local.
   const selectedCategoryId = isCategoryControlled ? (categoryId ?? '') : localCategoryId;
   const selectedCategory = useMemo(() => categories.find((c) => c.id === selectedCategoryId) ?? null, [categories, selectedCategoryId]);
+  // Review of 18 Nov 2026, item 1: Skill Group -> Skill Category -> Skills. When Skill Groups
+  // exist, a Skill Group picker narrows the category list. Only the category is saved, so the
+  // group is local UI state, starting from the saved category's group.
+  const skillGroupsQuery = useSkillGroupsQuery();
+  const skillGroups = useMemo(() => skillGroupsQuery.data ?? [], [skillGroupsQuery.data]);
+  const hasGroups = skillGroups.length > 0;
+  const [pickedGroupId, setPickedGroupId] = useState<string | null>(null);
+  const selectedGroupId = pickedGroupId ?? selectedCategory?.group_id ?? '';
   const isNarrowed = !showAllCategories && !!suggestedCategoryIds && suggestedCategoryIds.length > 0;
   const categoryOptions = useMemo(
     () =>
       (isNarrowed ? categories.filter((c) => suggestedCategoryIds!.includes(c.id) || c.id === selectedCategoryId) : categories)
+        .filter((c) => !hasGroups || !selectedGroupId || c.group_id === selectedGroupId || c.id === selectedCategoryId)
         .map((c) => ({ value: c.id, label: c.name })),
-    [categories, isNarrowed, suggestedCategoryIds, selectedCategoryId]
+    [categories, isNarrowed, suggestedCategoryIds, selectedCategoryId, hasGroups, selectedGroupId]
   );
+  const groupPicker = hasGroups ? (
+    <div className="mb-2">
+      <label htmlFor={`${listId}-group`} className="mb-1 block text-[0.8rem] font-semibold text-[#475569]">Skill Group</label>
+      <FormSelect
+        small
+        placeholder="All skill groups"
+        allowClear
+        clearLabel="All skill groups"
+        options={skillGroups.map((g) => ({ value: g.id, label: g.name }))}
+        value={selectedGroupId}
+        onChange={(id) => setPickedGroupId(id || '')}
+      />
+    </div>
+  ) : null;
+  const effectiveCategoryLabel = hasGroups ? 'Skill Category' : categoryLabel || label || 'Skill Group';
 
   useEffect(() => {
     if (!libraryQuery.isError) return;
@@ -180,9 +205,10 @@ export function SkillsSelector({ label, categoryLabel, required, value, onChange
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
         <div>
+          {groupPicker}
           <div className="mb-1 flex items-center justify-between gap-2">
             <label htmlFor={`${listId}-category`} className="text-[0.8rem] font-semibold text-[#475569]">
-              {categoryLabel || label || 'Skill Group'}
+              {effectiveCategoryLabel}
               {required && <span className="text-[#dc2626]"> *</span>}
             </label>
           </div>
@@ -311,8 +337,10 @@ export function SkillsSelector({ label, categoryLabel, required, value, onChange
         <span className="text-[0.75rem] font-medium text-[#94a3b8]">Selected: {value.length}</span>
       </div>
 
+      {groupPicker}
       {categories.length > 0 && (
         <div className="mb-2">
+          {hasGroups && <div className="mb-1 text-[0.8rem] font-semibold text-[#475569]">Skill Category</div>}
           <FormSelect
             small
             placeholder={libraryQuery.isLoading ? 'Loading skill groups…' : (categoryPlaceholder ?? 'Select a skill group (optional)')}

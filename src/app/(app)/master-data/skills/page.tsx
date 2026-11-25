@@ -9,7 +9,7 @@ export default function SkillsMasterPage() {
     <RequireRole role="super_admin">
       <MasterDataPage
         title="Skills Management"
-        description="Each skill has a name, a Mandatory or Optional type, and a skill category such as Technical, Behavioural or Domain."
+        description="Each skill has a name, a Mandatory or Optional type, its skill category, and a classification such as Technical, Behavioural or Domain."
       >
         <SkillsManagementSection />
       </MasterDataPage>
