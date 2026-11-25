@@ -15,13 +15,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const profile = await prisma.profiles.findUnique({ where: { email } });
+    // Emails are matched without regard to case or surrounding spaces: phones capitalise the first
+    // letter and copy-paste adds trailing spaces, and either one used to fail the login.
+    const typedEmail = String(email).trim();
+    const profile =
+      (await prisma.profiles.findUnique({ where: { email: typedEmail } })) ??
+      (await prisma.profiles.findFirst({ where: { email: { equals: typedEmail, mode: 'insensitive' } } }));
 
     if (!profile || !profile.password_hash) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    const passwordValid = await verifyPassword(password, profile.password_hash);
+    // A pasted password often picks up a space at either end. The exact text is tried first, so a
+    // password that really starts or ends with a space still works.
+    const typedPassword = String(password);
+    const passwordValid =
+      (await verifyPassword(typedPassword, profile.password_hash)) ||
+      (typedPassword.trim() !== typedPassword && (await verifyPassword(typedPassword.trim(), profile.password_hash)));
     if (!passwordValid) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
