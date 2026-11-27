@@ -1,4 +1,6 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { REQUEST_PATH_HEADER } from '@/lib/auth/requestPath';
+import { canUseModule, moduleForApiPath } from '@/lib/auth/moduleAccess';
 import { SESSION_COOKIE_NAME } from '@/lib/auth/constants';
 import { verifySessionToken, type SessionPayload } from '@/lib/auth/jwt';
 
@@ -25,6 +27,32 @@ export async function getCurrentUser(): Promise<SessionPayload | null> {
   return verifySessionToken(token);
 }
 
+/** Path of the API request being handled, as set by the middleware; null outside a request. */
+async function currentRequestPath(): Promise<string | null> {
+  try {
+    return (await headers()).get(REQUEST_PATH_HEADER);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refuses an API that belongs to a screen the Delivery Head switched off for this employee.
+ * Read from the database on each call, so a change applies at once, not at the next login.
+ */
+async function assertModuleAccess(user: SessionPayload): Promise<void> {
+  if (user.role === 'super_admin') return;
+  const path = await currentRequestPath();
+  const accessModule = path ? moduleForApiPath(path) : undefined;
+  if (!accessModule) return;
+
+  const { prisma } = await import('@/lib/db/prisma');
+  const profile = await prisma.profiles.findUnique({ where: { id: user.userId }, select: { blocked_modules: true } });
+  if (!canUseModule(user.role, profile?.blocked_modules, accessModule.key)) {
+    throw new AuthError(`Your access to ${accessModule.label} has been turned off. Ask your Delivery Head.`, 403);
+  }
+}
+
 export async function requireAuth(): Promise<SessionPayload> {
   const user = await getCurrentUser();
 
@@ -32,6 +60,7 @@ export async function requireAuth(): Promise<SessionPayload> {
     throw new AuthError('Unauthorized', 401);
   }
 
+  await assertModuleAccess(user);
   return user;
 }
 

@@ -27,14 +27,16 @@ export function UserForm({ defaultValues, onSubmit, onCancel, submitLabel, pendi
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+    // autoComplete off: the browser treats an email + password form as a login and fills in the
+    // signed-in admin's saved email and password, which blocked typing the new user's email.
+    <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="flex flex-col gap-3.5">
       <div className="grid grid-cols-2 gap-3">
         <FormField label="First Name" required placeholder="e.g. Ramesh" register={register('first_name')} error={errors.first_name?.message} />
         <FormField label="Last Name" required placeholder="e.g. Kumar" register={register('last_name')} error={errors.last_name?.message} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Email" required type="email" placeholder="e.g. ramesh@costaff.in" register={register('email')} error={errors.email?.message} />
+        <FormField label="Email" required type="email" placeholder="e.g. ramesh@costaff.in" register={register('email')} error={errors.email?.message} autoComplete={isCreate ? 'off' : undefined} />
         <FormField label="Phone Number" required placeholder="e.g. 9876543210" register={register('phone')} error={errors.phone?.message} />
       </div>
 
@@ -64,6 +66,7 @@ export function UserForm({ defaultValues, onSubmit, onCancel, submitLabel, pendi
             type="password"
             placeholder="Minimum 8 characters"
             register={register('password')}
+            autoComplete="new-password"
             error={errors.password?.message}
             onGenerate={() => setValue('password', generatePassword(), { shouldValidate: true, shouldDirty: true })}
           />

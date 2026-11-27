@@ -99,7 +99,7 @@ export const NAV_SECTIONS: NavSection[] = [
     requiredRoles: ['super_admin'],
     items: [
       { id: 'users', href: '/users', label: 'User Management', icon: 'fa-users-gear', requiredRole: 'super_admin' },
-      { id: 'roles', href: '/roles', label: 'Roles & Permissions', icon: 'fa-shield-halved', requiredRole: 'super_admin' },
+      { id: 'roles', href: '/roles', label: 'Roles & Access', icon: 'fa-shield-halved', requiredRole: 'super_admin' },
       { id: 'settings_demand_fulfillment', href: '/settings/demand-fulfillment', label: 'Demand Fulfillment Settings', icon: 'fa-sliders', requiredRole: 'super_admin' },
     ],
   },

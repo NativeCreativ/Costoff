@@ -51,3 +51,10 @@ export const selfChangePasswordSchema = changePasswordSchema.and(
 );
 
 export type SelfChangePasswordValues = z.infer<typeof selfChangePasswordSchema>;
+
+/** Employee access (Roles & Permissions): the screens switched off for one employee. */
+export const userAccessSchema = z.object({
+  blocked_modules: z.array(z.string()).max(50),
+});
+
+export type UserAccessValues = z.infer<typeof userAccessSchema>;

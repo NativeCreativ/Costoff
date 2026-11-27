@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createUser, updateUser, deleteUser, changeUserPassword } from '@/services/user.service';
+import { createUser, updateUser, deleteUser, changeUserPassword, setUserAccess } from '@/services/user.service';
 import { UserFormState } from '@/components/users/UserFormModal';
 
 export function useCreateUserMutation() {
@@ -37,5 +37,16 @@ export function useChangeUserPasswordMutation() {
   return useMutation({
     mutationFn: ({ id, newPassword, confirmPassword, oldPassword }: { id: string; newPassword: string; confirmPassword: string; oldPassword?: string }) =>
       changeUserPassword(id, newPassword, confirmPassword, oldPassword),
+  });
+}
+
+export function useSetUserAccessMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, blockedModules }: { id: string; blockedModules: string[] }) => setUserAccess(id, blockedModules),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
   });
 }

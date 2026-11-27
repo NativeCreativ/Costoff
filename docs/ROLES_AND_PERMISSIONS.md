@@ -363,3 +363,9 @@ These rules supersede the `ta` rows above where they differ.
 - **Instruction Log** (`/api/demands/[requestId]/instructions`): write = `canWriteDemandInstructions`
   (Super Admin, the demand's current AM, its assigned SPOC); edit / delete = the author while still
   on the demand, or Super Admin (`canManageDemandInstruction`); read = `canViewDemand`.
+
+## Employee access (per-employee screens) — 27 Nov 2026
+
+- Roles & Access page (`/roles`, super_admin only) → **Employee Access**: the Delivery Head picks an employee and switches screens off or on. Stored in `profiles.blocked_modules`; the screen list lives in `src/lib/auth/moduleAccess.ts`.
+- A super_admin always has every screen and cannot be restricted (`PUT /api/users/[id]/access` refuses a super_admin target). Master data, Users and Settings stay super_admin-only and are not in the list.
+- Enforcement: the sidebar hides switched-off screens and `AppShell` shows "Access turned off" on them (UX). Server side, `requireAuth` refuses the APIs that belong only to a switched-off screen (dashboard, calendar, to-dos, task logs, each report), reading the list from the database on each call so a change applies at once. The middleware passes the real path in `x-costaff-path` (always overwritten). Demands / Candidates / Interviews share their APIs with other screens, so for those only the page is closed.

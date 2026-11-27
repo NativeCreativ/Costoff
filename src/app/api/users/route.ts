@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       first_name: values.first_name.trim(),
       last_name: values.last_name.trim(),
       full_name: buildFullName(values.first_name, values.last_name),
-      email: values.email.trim(),
+      email: values.email.trim().toLowerCase(),
       phone: values.phone.trim(),
       date_of_joining: values.date_of_joining ? new Date(values.date_of_joining) : null,
       role: values.role,
@@ -138,7 +138,7 @@ export async function PUT(request: Request) {
       first_name: values.first_name.trim(),
       last_name: values.last_name.trim(),
       full_name: buildFullName(values.first_name, values.last_name),
-      email: values.email.trim(),
+      email: values.email.trim().toLowerCase(),
       phone: values.phone.trim(),
     };
 

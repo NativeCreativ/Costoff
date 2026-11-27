@@ -29,9 +29,11 @@ interface FormFieldProps {
   /** Optional muted helper text below the input. Rendered only when provided, so existing
    *  callers are unaffected. */
   hint?: string;
+  /** Browser autofill hint, e.g. "off" or "new-password" so a saved login is not filled in. */
+  autoComplete?: string;
 }
 
-export function FormField({ label, required, type = 'text', placeholder, register, error, small, listId, disabled, readOnly, min, maxDigits, transform, onGenerate, generateLabel = 'Generate', hint }: FormFieldProps) {
+export function FormField({ label, required, type = 'text', placeholder, register, error, small, listId, disabled, readOnly, min, maxDigits, transform, onGenerate, generateLabel = 'Generate', hint, autoComplete }: FormFieldProps) {
   const isPassword = type === 'password';
   const [showPassword, setShowPassword] = useState(false);
   const { onChange: registerOnChange, ...registerRest } = register;
@@ -51,6 +53,7 @@ export function FormField({ label, required, type = 'text', placeholder, registe
           min={min}
           disabled={disabled}
           readOnly={readOnly}
+          autoComplete={autoComplete}
           {...registerRest}
           onChange={
             transform

@@ -637,6 +637,8 @@ export interface Profile {
   date_of_joining?: string | null;
   status: string;
   is_active: boolean;
+  /** Screens switched off for this employee (see src/lib/auth/moduleAccess.ts). */
+  blocked_modules?: string[];
   created_at: string;
 }
 

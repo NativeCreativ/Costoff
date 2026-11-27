@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_SECTIONS, canAccessNavItem, canAccessNavSection, navIdFromPathname } from "@/lib/navigation/routes";
+import { canUseModule, moduleForPagePath } from "@/lib/auth/moduleAccess";
 
 interface SidebarProps {
   currentUserRole?: string;
+  /** Screens the Delivery Head switched off for this user; hidden from the menu. */
+  blockedModules?: string[];
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 }
@@ -14,7 +17,7 @@ interface SidebarProps {
  * Main navigation. Each item is a real <Link> to a route, and the active item is
  * derived from the current pathname — there is no `activeTab` state here.
  */
-export function Sidebar({ currentUserRole, collapsed = false, onToggleCollapsed }: SidebarProps) {
+export function Sidebar({ currentUserRole, blockedModules, collapsed = false, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const activeNavId = navIdFromPathname(pathname);
 
@@ -24,7 +27,11 @@ export function Sidebar({ currentUserRole, collapsed = false, onToggleCollapsed 
   const visibleSections = NAV_SECTIONS.filter((section) => canAccessNavSection(section, currentUserRole))
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => canAccessNavItem(item, currentUserRole)),
+      items: section.items.filter((item) => {
+        if (!canAccessNavItem(item, currentUserRole)) return false;
+        const accessModule = moduleForPagePath(item.href);
+        return !accessModule || canUseModule(currentUserRole, blockedModules, accessModule.key);
+      }),
     }))
     .filter((section) => section.items.length > 0);
 

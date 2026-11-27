@@ -672,6 +672,8 @@ model profiles {
   first_name                                                  String?                   @db.VarChar(255)
   last_name                                                   String?                   @db.VarChar(255)
   date_of_joining                                             DateTime?                 @db.Date
+  /// Screens the Delivery Head switched off for this employee (keys from src/lib/auth/moduleAccess.ts).
+  blocked_modules                                             String[]                  @default([])
   status                                                      String                    @default("ACTIVE") @db.VarChar(20)
   candidates_candidates_added_byToprofiles                    candidates[]              @relation("candidates_added_byToprofiles")
   candidates_candidates_updated_byToprofiles                  candidates[]              @relation("candidates_updated_byToprofiles")

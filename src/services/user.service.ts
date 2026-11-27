@@ -51,3 +51,8 @@ export async function changeUserPassword(
 ): Promise<void> {
   await api.put(`/users/${id}/password`, { newPassword, confirmPassword, ...(oldPassword ? { oldPassword } : {}) });
 }
+
+export async function setUserAccess(id: string, blockedModules: string[]): Promise<Profile> {
+  const { data } = await api.put(`/users/${id}/access`, { blocked_modules: blockedModules });
+  return data.profile;
+}

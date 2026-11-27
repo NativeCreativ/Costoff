@@ -655,3 +655,4 @@ Migration `20261112120000_client_feedback_round`.
 | Master Data (clients, end clients, skill groups, skills, demand category/phase/location/type, interview status, onboarding documents) | `src/lib/navigation/routes.ts` section "MASTER DATA MANAGEMENT"; named lists under `src/app/api/master-data/[kind]`; end clients under `src/app/api/end-clients`; client SPOCs on `companies` via `company_spocs` |
 | Demand detail tabs | `src/lib/demandFulfillment/routes.ts` |
 | Change auth/session | `src/lib/auth/{jwt,session}.ts` + `src/middleware.ts` |
+- **Employee access (27 Nov 2026):** `src/lib/auth/moduleAccess.ts` (screen list, path → screen), `profiles.blocked_modules TEXT[]` (migration `20261127100000_profile_blocked_modules`), `PUT /api/users/[id]/access`, `EmployeeAccessPanel` on `/roles`. The middleware now also runs on `/api/*` only to set `x-costaff-path`; `requireAuth` uses it to refuse switched-off screens' APIs.
